@@ -4,7 +4,7 @@
     </x-slot>
 
     <x-slot name="description">
-        This is all the information we hold about the user.
+
     </x-slot>
 
     {{-- Content --}}

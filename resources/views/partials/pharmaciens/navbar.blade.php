@@ -69,7 +69,7 @@
                 </div>
 
                 <div class="option-item d-lg-inline-block">
-                    <a href="" class="header-link font-secondary fw-semibold position-relative d-inline-block text-title hover-text-secondary link-hover-secondary transition">
+                    <a href="" class="d-none header-link font-secondary fw-semibold position-relative d-inline-block text-title hover-text-secondary link-hover-secondary transition">
                         <i class="ri-account-circle-line"></i>
                         <span class="d-none d-lg-inline-block">Se connecter</span>
                     </a>

@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Settings\PaiementSettings;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
@@ -14,9 +15,10 @@ use Filament\Pages\SettingsPage;
 
 class ManagerPaiementSettings extends SettingsPage
 {
+    use HasPageShield;
     protected static ?string $navigationGroup = 'Paramètres';
     protected static ?int $navigationSort = 2;
-    protected static ?string $navigationLabel = 'Frais inscription - réinscription';
+    protected static ?string $navigationLabel = 'Frais Inscription - Réinscription';
 
     protected static ?string $title = "Frais d'inscription et de réinscription";
 

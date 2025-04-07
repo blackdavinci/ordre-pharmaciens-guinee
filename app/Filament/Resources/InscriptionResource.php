@@ -5,6 +5,8 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\InscriptionResource\Pages;
 use App\Filament\Resources\InscriptionResource\RelationManagers;
 use App\Models\Inscription;
+use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Infolists\Components\Grid;
@@ -26,9 +28,14 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;  // Import the DB facade
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Parfaitementweb\FilamentCountryField\Infolists\Components\CountryEntry;
 use Parfaitementweb\FilamentCountryField\Tables\Columns\CountryColumn;
+use Snowfire\Beautymail\Beautymail;
+use Spatie\Permission\Models\Role;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -63,14 +70,9 @@ class InscriptionResource extends Resource
                         ->modalDescription('Voulez-vous vraiment valider cette inscprition?')
                         ->modalIcon('heroicon-o-check-circle')
                         ->modalIconColor('success')
-                        ->action(function ($record) {
-                            $record->update(['status' => 'approved']);
-
-                            Notification::make()
-                                ->title('Inscription Validée')
-                                ->body("L'inscription a été validé avec succès.")
-                                ->success()
-                                ->send();
+                        ->action(function (Inscription $record) {
+                            // Appel à la méthode approveInscription depuis une instance de la ressource
+                            (new InscriptionResource)->approveInscription($record);
                         })
                         ->visible(fn ($record) => $record->status !== 'approved'),
                     // Reject Action
@@ -462,6 +464,83 @@ class InscriptionResource extends Resource
             'view' => Pages\ViewInscription::route('/{record}'),
             'edit' => Pages\EditInscription::route('/{record}/edit'),
         ];
+    }
+
+    public function approveInscription(Inscription $record)
+    {
+
+        DB::transaction(function () use ($record) {
+            // Generate unique registration code
+            $code = 'ORD-' . strtoupper(Str::random(8));
+
+            // Generate PDF certificate
+            $pdf = Pdf::loadView('pharmaciens.attestations.pdf-attestation', [
+                'inscription' => $record,
+                'code' => $code
+            ]);
+
+            // Sauvegarder le PDF dans la bibliothèque de médias Spatie
+            $pdfPath = 'attestations/attestation-' . $record->id . '.pdf'; // Défini le chemin du fichier dans la collection
+            $pdfContent = $pdf->output(); // Contenu du PDF généré
+
+            // Ajouter le fichier PDF à la collection 'attestations' de l'inscription
+            $record->addMediaFromString($pdfContent)
+                ->usingFileName('attestation-' . $record->id . '.pdf') // Nom du fichier
+                ->toMediaCollection('attestations'); // Ajouter à la collection 'attestations'
+
+            // Generate random password
+            $password = Str::random(12);
+
+            // Create user account
+            $user = User::create([
+                'name' => User::makeUniqueName($record->nom, $record->prenom),
+                'prenom' => $record->prenom,
+                'nom' => $record->nom,
+                'email' => $record->email,
+                'telephone' => $record->telephone_mobile,
+                'password' => Hash::make($password),
+                'status' => 1,
+            ]);
+
+            // Update registration status
+            $record->update([
+                'statut' => 'approved',
+                'rpgm' => $code,
+                'user_id' => $user->id,
+            ]);
+
+            // Assign role
+            $role = Role::findByName('membre');
+            $user->assignRole($role);
+
+            // Envoi des emails d'approbation
+            $beautymail = app()->make(Beautymail::class);
+            $beautymail->send('emails.inscription-approved', ['inscription' => $record], function ($message) use ($record) {
+                $message
+                    ->from('ousmaneciss1@gmail.com')
+                    ->to($record->email, $record->prenom.' '.$record->nom)
+                    ->subject('Votre inscription a été approuvée - ONPG');
+            });
+
+            // Envoi des informations de compte utilisateur
+            $beautymail->send('emails.user-account', ['user' => $user, 'password' => $password], function ($message) use ($user) {
+                $message
+                    ->from('ousmaneciss1@gmail.com')
+                    ->to($user->email, $user->prenom.' '.$user->nom)
+                    ->subject('Votre compte a été créé - ONPG');
+            });
+
+            // Clean up PDF file after sending
+            if (file_exists($pdfPath)) {
+                unlink($pdfPath);
+            }
+        });
+
+        Notification::make()
+            ->title('Inscription Approuvée')
+            ->body("L'inscription a été approuvée et les emails ont été envoyés.")
+            ->success()
+            ->send();
     }
 
 }

@@ -6,6 +6,7 @@ use App\Exceptions\PaycardException;
 use App\Mail\PaiementInscriptionEchec;
 use App\Mail\PaiementInscriptionEchecBeautymail;
 use App\Models\Paiement;
+use App\Models\User;
 use App\Settings\PaiementSettings;
 use Illuminate\Http\Request;
 use App\Models\Inscription;
@@ -103,6 +104,15 @@ class PaymentController extends Controller
         try {
 
             $numeroInscription = $paiement->inscription->numero_inscription;
+
+
+//            $beautymail = app()->make(Beautymail::class);
+//            $beautymail->send('emails.notification-inscription', [], function ($message) use ($president) {
+//                $message
+//                    ->from('ousmaneciss1@gmail.com')
+//                    ->to($president->email, $president->prenom.' '.$president->nom)
+//                    ->subject('Nouvelle Inscription  - ONPG');
+//            });
 
             return redirect()->route('inscription.success', ['numero' => $numeroInscription]);
 

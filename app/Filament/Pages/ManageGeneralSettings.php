@@ -12,10 +12,11 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Pages\SettingsPage;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class ManageGeneralSettings extends SettingsPage
 {
-
+    use HasPageShield;
     protected static ?string $navigationGroup = 'Paramètres';
     protected static ?int $navigationSort = 1;
     protected static ?string $navigationLabel = 'Général';
