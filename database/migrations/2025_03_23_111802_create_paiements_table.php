@@ -13,14 +13,20 @@ return new class extends Migration
     {
         Schema::create('paiements', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('inscription_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->enum('type', ['inscription', 'reinscription'])->default('inscription');
-            $table->decimal('amount', 10, 2);
+            $table->string('code')->nullable();
+            $table->dateTime('transaction_date')->nullable();
+            $table->enum('status', ['new', 'pending','success','failed','canceled','error'])->default('new');
+            $table->string('status_description')->nullable();
+            $table->string('error_message')->nullable();
             $table->string('payment_method')->nullable(); // ex: orange money, playcard, etc.
-            $table->string('reference')->nullable(); // référence de transaction
-            $table->string('inscription_token')->nullable()->index();
-            $table->enum('status', ['failed', 'success','pending'])->default('pending');
+            $table->string('payment_description')->nullable();
+            $table->decimal('payment_amount', 10, 2);
+            $table->string('payment_reference')->nullable(); // référence de transaction
+            $table->string('merchant_name')->nullable();
+            $table->string('token')->nullable()->index();
+            $table->foreignId('inscription_id')->constrained('inscriptions')->onDelete('cascade'); // La clé étrangère fait référence à la table inscriptions
             $table->timestamps();
         });
     }

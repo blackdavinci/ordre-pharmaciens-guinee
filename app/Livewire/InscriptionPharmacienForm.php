@@ -55,18 +55,26 @@ class InscriptionPharmacienForm extends Component implements HasForms
         return $form
             ->schema([
                 Wizard::make([
-                    Wizard\Step::make('Informations personnelles')
-                        ->description('Identité du pharmacien')
+                    Wizard\Step::make('Identité personnelles & Coordonnées')
                         ->columns(3)
                         ->schema([
                             Grid::make(12) // This creates a 2-column layout for the next group of fields
                             ->schema([
                                 Grid::make()
-                                    ->columnSpan(12)
+                                    ->columnSpan(3)
+                                    ->schema([
+                                        SpatieMediaLibraryFileUpload::make('photo_identite')
+                                            ->collection('photo_identite')
+                                            ->label("Photo d'identité")
+                                            ->avatar()
+                                            ->required(),
+                                    ]),
+                                Grid::make()
+                                    ->columnSpan(9)
                                     ->schema([
                                         TextInput::make('prenom')->required(),
                                         TextInput::make('nom')->required(),
-                                        Select::make('genre')->options(['masculin' => 'Masculin', 'féminin' => 'Féminin'])->required(),
+                                        Select::make('genre')->options(['homme' => 'Homme', 'femme' => 'Femme'])->required(),
                                         DatePicker::make('date_naissance')->required(),
                                         Country::make('pays_naissance')->searchable()->required(),
                                         TextInput::make('lieu_naissance')->required(),
@@ -103,30 +111,25 @@ class InscriptionPharmacienForm extends Component implements HasForms
                                             ->label('Passeport - Première page')
                                             ->visible(fn ($get) => $get('type_piece_identite') === 'passeport')
                                             ->required(fn ($get) => $get('type_piece_identite') === 'passeport'),
+
+                                        TextInput::make('email')->email()->required(),
+                                        PhoneInput::make('telephone_mobile')
+                                            ->defaultCountry('GN')
+                                            ->validateFor(
+                                                lenient: true, // default: false
+                                            )
+                                            ->required(),
+                                        Country::make('pays_residence')->label('Pays de résidence')->searchable()->required(),
+                                        TextInput::make('ville_residence')->label('Ville de résidence')->required(),
+                                        TextInput::make('adresse_residence')->columnSpanFull()->required(),
                                     ]),
 
                             ]),
 
                         ]),
 
-                    Wizard\Step::make('Coordonnées')
-                        ->description('Adresse et contact')
-                        ->columns(2)
-                        ->schema([
-                            TextInput::make('email')->email()->required(),
-                            PhoneInput::make('telephone_mobile')
-                                ->defaultCountry('GN')
-                                ->validateFor(
-                                    lenient: true, // default: false
-                                )
-                                ->required(),
-                            Country::make('pays_residence')->label('Pays de résidence')->searchable()->required(),
-                            TextInput::make('ville_residence')->label('Ville de résidence')->required(),
-                            TextInput::make('adresse_personnelle')->columnSpanFull()->required(),
-                        ]),
 
-                    Wizard\Step::make("Documents d'état civil")
-                        ->description('Vérification de nationalité et moralité')
+                    Wizard\Step::make("Documents d'état civil & académiques")
                         ->columns(2)
                         ->schema([
                             Select::make('citoyen_guineen')
@@ -151,12 +154,7 @@ class InscriptionPharmacienForm extends Component implements HasForms
                                 ->label('Lettre manuscrite au Président')
                                 ->collection('lettre_manuscrite')
                                 ->required(),
-                        ]),
 
-                    Wizard\Step::make('Informations académiques')
-                        ->description('Diplôme et parcours')
-                        ->columns(2)
-                        ->schema([
                             SpatieMediaLibraryFileUpload::make('diplome')
                                 ->collection('diplome')
                                 ->required(),
@@ -188,14 +186,20 @@ class InscriptionPharmacienForm extends Component implements HasForms
                                 ->required(),
 
                         ]),
+
+
                     Wizard\Step::make('Situation professionnelle')
-                        ->description('Profil et emploi')
                         ->columns(2)
                         ->schema([
                             Select::make('profil')->options([
                                 'pharmacien assistant' => 'Pharmacien assistant',
                                 'pharmacien biologiste' => 'Pharmacien biologiste',
-                                'pharmacien delegue medical' => 'Délégué médical',
+                                'pharmacien délégué médical' => 'Pharmacien délégué médical',
+                                'pharmacien grossiste' => 'Pharmacien grossiste',
+                                'pharmacien inspecteur de santé' => 'Pharmacien inspecteur de santé',
+                                'pharmacien d\'industrie' => 'Pharmacien d\'industrie',
+                                'pharmacien sans affectation' => 'Pharmacien sans affectation',
+                                'pharmacien titulaire d\'officine' => 'Pharmacien titulaire d\'officine',
                             ])->required(),
                             Select::make('section')
                                 ->options(['section a' => 'Section A', 'section b' => 'Section B'])
@@ -215,20 +219,6 @@ class InscriptionPharmacienForm extends Component implements HasForms
                                 ->label("Attestation d'emploi")
                                 ->columnSpanFull()
                                 ->visible(fn ($get) => $get('salarie') == true)
-                                ->required(),
-                        ]),
-
-                    Wizard\Step::make('Paiement')
-                        ->description("Sélection du moyen de paiement")
-                        ->schema([
-                            Select::make('payment_method')
-                                ->label('Méthode de paiement')
-                                ->options([
-                                    'ORANGE_MONEY' => 'Orange Money',
-                                    'MOMO' => 'MTN MoMo',
-                                    'CREDIT_CARD' => 'Carte bancaire',
-                                    'PAYCARD' => 'Paycard',
-                                ])
                                 ->required(),
                         ]),
 
@@ -289,8 +279,24 @@ class InscriptionPharmacienForm extends Component implements HasForms
 
         try {
 
+            // Récupérer le dernier numéro d'inscription de l'année en cours
+            $lastInscription = Inscription::whereYear('created_at', date('Y'))
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // Définir le préfixe de l'inscription avec l'année en cours
+            $prefix = 'INS-' . date('Y') . '-';
+
+            // Si aucune inscription n'existe pour l'année en cours, commencer avec 000001
+            $lastNumber = $lastInscription ? (int) substr($lastInscription->numero_inscription, 9) : 0;
+            $newNumber = str_pad($lastNumber + 1, 6, '0', STR_PAD_LEFT); // Ajouter des zéros pour faire 6 chiffres
+
+            // Générer le numéro d'inscription
+            $numeroInscription = $prefix . $newNumber;
+
             $inscription = Inscription::create(array_merge($data, [
-                'token' => $token,
+                'inscription_token' => $token,
+                'numero_inscription' => $numeroInscription,
                 'statut' => 'pending',
                 'expiration_at' => now()->addHours(48),
             ]));
@@ -308,9 +314,11 @@ class InscriptionPharmacienForm extends Component implements HasForms
 
             DB::commit();
 
-            session()->forget('saved_data');
+//            session()->forget('saved_data');
 
-            return redirect()->route('payment.initiate', ['token' => $token, 'payment_method' => $data['payment_method']]);
+            return redirect()->route('payment.initiate', [
+                'token' => $token,
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();

@@ -4,6 +4,11 @@ namespace App\Filament\Pages;
 
 use App\Settings\PaiementSettings;
 use Filament\Forms;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Pages\SettingsPage;
 
@@ -21,7 +26,66 @@ class ManagerPaiementSettings extends SettingsPage
     {
         return $form
             ->schema([
-                // ...
+                Section::make("Inscription")
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('inscription_frais_citoyen')
+                                    ->label("Citoyen")
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(1),  // Montant entier
+
+                                TextInput::make('inscription_frais_resident')
+                                    ->label("Résident")
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(1),  // Montant entier
+
+                                TextInput::make('inscription_frais_citoyen_diplome_etranger')
+                                    ->label("Citoyen avec diplôme étranger")
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(1), // Montant entier
+
+                                TextInput::make('inscription_frais_resident_diplome_etranger')
+                                    ->label("Résident avec diplôme étranger")
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(1), // Montant entier
+                            ]),
+                    ]),
+                Section::make("Réinscription")
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('reinscription_frais_citoyen')
+                                    ->label("Citoyen")
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(1),  // Montant entier
+
+                                TextInput::make('reinscription_frais_resident')
+                                    ->label("Résident")
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(1),  // Montant entier
+
+                                TextInput::make('reinscription_frais_citoyen_diplome_etranger')
+                                    ->label("Citoyen avec diplôme étranger")
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(1), // Montant entier
+
+                                TextInput::make('reinscription_frais_resident_diplome_etranger')
+                                    ->label("Résident avec diplôme étranger")
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(1), // Montant entier
+                            ]),
+
+
+                    ])
             ]);
     }
 }

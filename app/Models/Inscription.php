@@ -16,6 +16,7 @@ class Inscription extends Model implements HasMedia
      * @var list<string>
      */
     protected $fillable = [
+        'numero_inscription',
         'prenom',
         'nom',
         'genre',
@@ -40,15 +41,12 @@ class Inscription extends Model implements HasMedia
         'statut',
         'motif_rejet',
         'frais_paiement',
-        'paiement_id',
         'date_validation',
         'user_id',
         'statut',
-        'token',
+        'inscription_token',
         'expiration_at'
     ];
-
-
 
 
     public function user()
@@ -56,9 +54,16 @@ class Inscription extends Model implements HasMedia
         return $this->belongsTo(User::class);
     }
 
-    public function paiement()
+    // Relation: Une inscription peut avoir plusieurs paiements
+    public function paiements()
     {
-        return $this->belongsTo(Paiement::class);
+        return $this->hasMany(Paiement::class);
+    }
+
+    // Ajoutez une méthode pour les réinscriptions
+    public function paiementsReinscription()
+    {
+        return $this->hasMany(Paiement::class)->where('type', 'reinscription');
     }
 
     public function registerMediaCollections(): void

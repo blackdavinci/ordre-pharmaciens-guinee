@@ -36,7 +36,8 @@ return [
     ],
 
     'paycard' => [
-        'api_key' => env('PAYCARD_API_KEY'),
-    ]
+        'api_key' => env('PAYCARD_API_KEY'),  // Utilisation de la variable d'environnement définie dans .env
+    ],
+
 
 ];

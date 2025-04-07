@@ -31,10 +31,6 @@ class PaycardService
                 'paycard-callback-url' => $paymentData['callback_url'] ?? null,
                 'paycard-auto-redirect' => $paymentData['auto_redirect'] ? 'on' : 'off',
                 'paycard-redirect-with-get' => $paymentData['redirect_with_get'] ? 'on' : 'off',
-                'paycard-jump-to-paycard' => $paymentData['payment_method'] === 'PAYCARD' ? 'on' : null,
-                'paycard-jump-to-cc' => $paymentData['payment_method'] === 'CREDIT_CARD' ? 'on' : null,
-                'paycard-jump-to-om' => $paymentData['payment_method'] === 'ORANGE_MONEY' ? 'on' : null,
-                'paycard-jump-to-momo' => $paymentData['payment_method'] === 'MOMO' ? 'on' : null,
             ]);
 
             $data = $response->json();
@@ -64,4 +60,5 @@ class PaycardService
             throw new PaycardException('API call failed: ' . $e->getMessage());
         }
     }
+
 }

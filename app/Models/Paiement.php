@@ -7,19 +7,26 @@ use Illuminate\Database\Eloquent\Model;
 class Paiement extends Model
 {
     protected $fillable = [
-        'inscription_id',
         'user_id',
-        'type',               // 'inscription' ou 'reinscription'
-        'amount',
-        'payment_method',     // Orange Money, Playcard, etc.
-        'reference',
-        'status',             // en attente, effectué, échoué
-        'inscription_token'
+        'type',
+        'code',
+        'transaction_date',
+        'status',
+        'status_description',
+        'error_message',
+        'payment_method',
+        'payment_description',
+        'payment_amount',
+        'payment_reference',
+        'merchant_name',
+        'token',
+        'inscription_id',
     ];
 
+    // Relation: Un paiement appartient à une inscription
     public function inscription()
     {
-        return $this->hasOne(Inscription::class);
+        return $this->belongsTo(Inscription::class);
     }
 
 }

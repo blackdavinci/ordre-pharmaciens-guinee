@@ -14,9 +14,10 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Wizard;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\Section;
-use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
@@ -51,15 +52,88 @@ class InscriptionResource extends Resource
     {
         return $infolist
             ->schema([
-                Section::make('Informations Personnelles')
-                    ->description('Identité du pharmacien')
+                Infolists\Components\Actions::make([
+                    // Approve Action
+                    Infolists\Components\Actions\Action::make('approved')
+                        ->label('Valider')
+                        ->color('success')
+                        ->icon('heroicon-o-check-circle')
+                        ->requiresConfirmation()
+                        ->modalHeading("Validation Inscription")
+                        ->modalDescription('Voulez-vous vraiment valider cette inscprition?')
+                        ->modalIcon('heroicon-o-check-circle')
+                        ->modalIconColor('success')
+                        ->action(function ($record) {
+                            $record->update(['status' => 'approved']);
+
+                            Notification::make()
+                                ->title('Inscription Validée')
+                                ->body("L'inscription a été validé avec succès.")
+                                ->success()
+                                ->send();
+                        })
+                        ->visible(fn ($record) => $record->status !== 'approved'),
+                    // Reject Action
+                    Infolists\Components\Actions\Action::make('rejected')
+                        ->label('Rejeter')
+                        ->color('danger')
+                        ->icon('heroicon-o-x-circle')
+                        ->requiresConfirmation()
+                        ->modalHeading('Rejet Inscription')
+                        ->modalDescription('Voulez-vous vraiment rejeter cette inscription?')
+                        ->modalIcon('heroicon-o-x-circle')
+                        ->modalIconColor('danger')
+                        ->form([
+                            \Filament\Forms\Components\Textarea::make('reason')
+                                ->label('Motif du rejet')
+                                ->required(),
+                        ])
+                        ->action(function ($record, array $data) {
+                            $record->update([
+                                'statut' => 'rejected',
+                                'motif_rejet' => $data['reason']
+                            ]);
+
+                            Notification::make()
+                                ->title('Inscription Rejetée')
+                                ->body("L'inscription a été rejeté pour les raisons : {$data['reason']}")
+                                ->danger()
+                                ->send();
+                        })
+                        ->visible(fn ($record) => $record->status !== 'rejected'),
+                    // Delete Action
+                    Infolists\Components\Actions\Action::make('Supprimer')
+                        ->label('Delete')
+                        ->color('danger')
+                        ->icon('heroicon-o-trash')
+                        ->requiresConfirmation()
+                        ->modalHeading('Suppression Inscription')
+                        ->modalDescription('Voulez-vous vraiment supprimer cette inscription? Cette action est irréveresible.')
+                        ->modalIcon('heroicon-o-trash')
+                        ->modalIconColor('danger')
+                        ->action(function ($record) {
+                            $record->delete();
+
+                            Notification::make()
+                                ->title('Inscription Supprimée')
+                                ->body("Cette inscription a été définitivement supprimée.")
+                                ->danger()
+                                ->send();
+
+                            return redirect(static::getUrl('index'));
+                        })
+                        ->visible(fn (): bool => auth()->user()->can('delete', Inscription::class)),
+                ])
+                    ->columnSpanFull()
+                    ->alignEnd(),
+                Section::make('Identité personnelles & Coordonnées')
                     ->schema([
                         Grid::make(12)
                             ->schema([
                                 Grid::make()
                                     ->columnSpan(2)
                                     ->schema([
-                                        SpatieMediaLibraryImageEntry::make('photo_identite')
+                                        Infolists\Components\SpatieMediaLibraryImageEntry::make('photo_identite')
                                             ->collection('photo_identite')
                                             ->label('Photo ID')
                                             ->square()
@@ -100,41 +174,55 @@ class InscriptionResource extends Resource
                                                 // Vérifier la valeur et afficher le texte correspondant
                                                 return $state === 'cin' ? 'Carte d\'identité' : ($state === 'passeport' ? 'Passeport' : '');  // Valeur par défaut si non trouvé
                                             }),
-
                                         // Champs conditionnels
-                                        SpatieMediaLibraryImageEntry::make('cin_recto')
+                                        IconEntry::make('cin_recto')
                                             ->label('CIN Recto')
                                             ->visible(function ($record) {
                                                 return $record->type_piece_identite === 'cin';
-                                            }),
-                                        SpatieMediaLibraryImageEntry::make('cin_verso')
+                                            })
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('cin_recto')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
+                                        IconEntry::make('cin_verso')
                                             ->label('CIN Verso')
                                             ->visible(function ($record) {
                                                 return $record->type_piece_identite === 'cin';
-                                            }),
-                                        SpatieMediaLibraryImageEntry::make('passeport_premiere_page')
+                                            })
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('cin_verso')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
+                                        IconEntry::make('passeport_premiere_page')
                                             ->label('Passeport première page')
                                             ->visible(function ($record) {
                                                 return $record->type_piece_identite === 'passeport';
-                                            }),
-                                        SpatieMediaLibraryImageEntry::make('passeport_page_infos')
+                                            })
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('passeport_premiere_page')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
+                                        IconEntry::make('passeport_page_infos')
                                             ->label('Passeport page informations')
                                             ->visible(function ($record) {
                                                 return $record->type_piece_identite === 'passeport';
                                             })
-                                    ])
-                            ]),
-                    ])
-                    ->collapsed(false),
-
-                Section::make('Coordonnées')
-                    ->description('Adresse et contact')
-                    ->schema([
-                        Grid::make(12)
-                            ->schema([
-                                Grid::make()
-                                    ->columnSpan(12)
-                                    ->schema([
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('passeport_page_infos')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
                                         TextEntry::make('email')
                                             ->label('E-mail')
                                             ->formatStateUsing(fn ($state) => ucfirst($state)),
@@ -146,84 +234,127 @@ class InscriptionResource extends Resource
                                         TextEntry::make('ville_residence')
                                             ->label('Ville de résidence')
                                             ->formatStateUsing(fn ($state) => ucfirst($state)),
+                                        TextEntry::make('adresse_residence')
+                                            ->label('Adresse de résidence')
+                                            ->columnSpan(2)
+                                            ->formatStateUsing(fn ($state) => ucfirst($state)),
 
                                     ])
                             ]),
                     ])
                     ->collapsed(false),
 
-                Section::make("Documents d'état civil")
-                    ->description('Etat civil, antécédents judiciaires et vérification de moralité')
+                Section::make("Documents d'état civil & académiques")
                     ->schema([
                         Grid::make(12)
                             ->schema([
-                                Grid::make()
-                                    ->columnSpan(12)
+                                Grid::make(3)
                                     ->schema([
                                         TextEntry::make('citoyen_guineen')
                                             ->label("Etes-vous citoyen(ne) guinéen(ne) ?")
                                             ->formatStateUsing(function ($state) {
-                                                // Vérifier la valeur et afficher le texte correspondant
-                                                return $state === true ? 'Oui' : ($state === false ? 'Non' : '');  // Valeur par défaut si non trouvé
+                                                // Convert $state to boolean and display the corresponding text
+                                                $state = filter_var($state, FILTER_VALIDATE_BOOLEAN); // Ensures it's treated as a boolean
+                                                return $state ? 'Oui' : 'Non'; // Return 'Oui' for true, 'Non' for false
                                             }),
-
-                                        // Champs conditionnels
-                                        SpatieMediaLibraryImageEntry::make('certificat_nationalite')
-                                            ->label('Certificat de nationalité')
-                                            ->visible(function ($record) {
-                                                return $record->citoyen_guineen === true;
-                                            }),
-
-                                        SpatieMediaLibraryImageEntry::make('extrait_naissance')
-                                            ->label('Extrait de naissance'),
-                                        SpatieMediaLibraryImageEntry::make('casier_judiciaire')
-                                            ->label('Casier judiciaire'),
-                                        SpatieMediaLibraryImageEntry::make('attestation_moralite')
-                                            ->label('Attestation de moralité'),
-                                        SpatieMediaLibraryImageEntry::make('lettre_manuscrite')
-                                            ->label('Lettre manuscrite au Président'),
-
-                                    ])
-                            ]),
-                    ])
-                    ->collapsed(false),
-
-                Section::make("Informations académiques")
-                    ->description('Diplôme et parcours')
-                    ->schema([
-                        Grid::make(12)
-                            ->schema([
-                                Grid::make()
-                                    ->columnSpan(12)
-                                    ->schema([
-                                        TextEntry::make('annee_obtention_diplome')
-                                            ->label("Année d'obtention du diplôme")
-                                            ->formatStateUsing(fn ($state) => ucfirst($state)),
-                                        SpatieMediaLibraryImageEntry::make('diplome')
-                                            ->label('Diplôme'),
-                                        SpatieMediaLibraryImageEntry::make('certificat_fin_cycle')
-                                            ->label('Certificat de fin de cycle'),
-
                                         TextEntry::make('diplome_etranger')
                                             ->label("Votre diplome a t'il été délivré hors de la Guinée ?")
                                             ->formatStateUsing(function ($state) {
-                                                // Vérifier la valeur et afficher le texte correspondant
-                                                return $state === true ? 'Oui' : ($state === false ? 'Non' : '');  // Valeur par défaut si non trouvé
+                                                // Convert $state to boolean and display the corresponding text
+                                                $state = filter_var($state, FILTER_VALIDATE_BOOLEAN); // Ensures it's treated as a boolean
+                                                return $state ? 'Oui' : 'Non'; // Return 'Oui' for true, 'Non' for false
                                             }),
+                                        TextEntry::make('annee_obtention_diplome')
+                                            ->label("Année d'obtention du diplôme")
+                                            ->formatStateUsing(fn ($state) => ucfirst($state)),
                                         // Champs conditionnels
-                                        SpatieMediaLibraryImageEntry::make('equivalence_diplome')
+                                        IconEntry::make('certificat_nationalite')
+                                            ->label('Certificat de nationalité')
+                                            ->visible(function ($record) {
+                                                return filter_var($record->citoyen_guineen, FILTER_VALIDATE_BOOLEAN);
+                                            })
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('certificat_nationalite')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
+
+                                        IconEntry::make('certificat_fin_cycle')
+                                            ->label('Certificat de fin de cycle')
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('certificat_fin_cycle')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
+                                        IconEntry::make('diplome')
+                                            ->label('Diplôme')
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('diplome')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
+                                        // Champs conditionnels
+                                        IconEntry::make('equivalence_diplome')
                                             ->label("Attestation d'équivalence")
                                             ->visible(function ($record) {
-                                                return $record->diplome_etranger === true;
-                                            }),
+                                                return filter_var($record->diplome_etranger, FILTER_VALIDATE_BOOLEAN);
+                                            })
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('equivalence_diplome')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
 
-                                    ])
+                                        IconEntry::make('extrait_naissance')
+                                            ->label('Extrait de naissance')
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('extrait_naissance')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
+                                        IconEntry::make('casier_judiciaire')
+                                            ->label('Casier judiciaire')
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('casier_judiciaire')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
+                                        IconEntry::make('attestation_moralite')
+                                            ->label('Attestation de moralité')
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('attestation_moralite')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
+                                        IconEntry::make('lettre_manuscrite')
+                                            ->label('Lettre manuscrite au Président')
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('lettre_manuscrite')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
+                                    ]),
                             ]),
                     ])
                     ->collapsed(false),
 
                 Section::make("Situation professionnelle")
-                    ->description('Profil et emploi')
                     ->schema([
                         Grid::make(12)
                             ->schema([
@@ -233,21 +364,27 @@ class InscriptionResource extends Resource
                                         TextEntry::make('profil')
                                             ->formatStateUsing(fn ($state) => ucfirst($state)),
                                         TextEntry::make('section')
-                                            ->formatStateUsing(fn ($state) => ucfirst($state)),
+                                            ->formatStateUsing(fn ($state) => strtoupper($state)),
                                         TextEntry::make('salarie')
                                             ->label("Etes-vous salarié ?")
                                             ->formatStateUsing(function ($state) {
-                                                // Vérifier la valeur et afficher le texte correspondant
-                                                return $state === true ? 'Oui' : ($state === false ? 'Non' : '');  // Valeur par défaut si non trouvé
+                                                // Convert $state to boolean and display the corresponding text
+                                                $state = filter_var($state, FILTER_VALIDATE_BOOLEAN); // Ensures it's treated as a boolean
+                                                return $state ? 'Oui' : 'Non'; // Return 'Oui' for true, 'Non' for false
                                             }),
-
                                         // Champs conditionnels
-                                        SpatieMediaLibraryImageEntry::make('attestation_emploi')
-                                            ->label('CIN Recto')
+                                        IconEntry::make('attestation_emploi')
+                                            ->label("Attestation d'emploi")
                                             ->visible(function ($record) {
-                                                return $record->salarie === true;
-                                            }),
-
+                                                return filter_var($record->salarie, FILTER_VALIDATE_BOOLEAN);
+                                            })
+                                            ->hintAction(
+                                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make('viewFile') // Action name
+                                                ->label('Voir le fichier')
+                                                    ->icon('heroicon-o-photo') // Use a relevant icon
+                                                    ->media(fn($record) => $record->getFirstMediaUrl('attestation_emploi')) // Media URL for the CIN Recto image
+                                                    ->modalHeading('Aperçu du fichier') // Modal heading
+                                            ),
                                     ])
                             ]),
                     ])
@@ -273,8 +410,8 @@ class InscriptionResource extends Resource
                     }),
                 TextColumn::make('email')->label('Email')->searchable(),
                 TextColumn::make('telephone_mobile')->label('Telephone')->searchable(),
-                TextColumn::make('nationalite')->label('Nationalité')->searchable(),
-                TextColumn::make('status')
+                CountryColumn::make('nationalite')->label('Nationalité')->searchable(),
+                TextColumn::make('statut')
                     ->label('Statut')
                     ->formatStateUsing(fn (string $state): string => ucfirst($state))
                     ->formatStateUsing(fn (string $state): string => match($state) {
@@ -297,18 +434,11 @@ class InscriptionResource extends Resource
 
             ])
             ->filters([
-                //
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->hiddenLabel()
                     ->color('primary'),
-                Action::make('delete')
-                    ->requiresConfirmation()
-                    ->hiddenLabel()
-                    ->action(fn (Inscription $record) => $record->delete())
-                    ->icon('heroicon-o-trash')
-                    ->color('danger'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -333,4 +463,5 @@ class InscriptionResource extends Resource
             'edit' => Pages\EditInscription::route('/{record}/edit'),
         ];
     }
+
 }

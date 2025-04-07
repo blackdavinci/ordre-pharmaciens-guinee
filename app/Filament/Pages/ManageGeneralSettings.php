@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Settings\GeneralSettings;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Textarea;
@@ -29,54 +30,53 @@ class ManageGeneralSettings extends SettingsPage
             ->schema([
                 Section::make('Paramètres Généraux ')
                     ->schema([
-                        TextInput::make('nom_app')
-                            ->label('Nom de l\'application')
-                            ->required(),
-                        Textarea::make('about')
-                            ->label('A propos')
-                            ->required(),
-                        TextInput::make('email')
-                            ->email()
-                            ->required(),
-                        TextInput::make('phone')
-                            ->label('Contact')
-                            ->required(),
-                        TextInput::make('adresse')
-                            ->required(),
-                        TextInput::make('copyright'),
-                        FileUpload::make('logo')
-                            ->preserveFilenames()
-                            ->disk('public')
-                            ->visibility('public')
-                            ->image(),
-                        TextInput::make('logo_size')
-                            ->label('Taille Logo'),
-                        FileUpload::make('logo_mobile')
-                            ->preserveFilenames()
-                            ->disk('public')
-                            ->visibility('public')
-                            ->image(),
-                        TextInput::make('logo_mobile_size')
-                            ->label('Taille logo mobile'),
-                        FileUpload::make('logo_sidebar')
-                            ->preserveFilenames()
-                            ->disk('public')
-                            ->visibility('public')
-                            ->image(),
-                        TextInput::make('logo_sidebar_size')
-                            ->label('Taille logo sidebar'),
-                        FileUpload::make('logo_footer')
-                            ->preserveFilenames()
-                            ->disk('public')
-                            ->visibility('public')
-                            ->image(),
-                        TextInput::make('logo_footer_size')
-                            ->label('Taille logo footer'),
-                        FileUpload::make('favicon')
-                            ->preserveFilenames()
-                            ->disk('public')
-                            ->visibility('public')
-                            ->image(),
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('site_name')
+                                    ->label('Nom de l\'application')
+                                    ->columnSpanFull()
+                                    ->required(),
+                                Textarea::make('about')
+                                    ->label('A propos')
+                                    ->columnSpanFull()
+                                    ->required(),
+                                TextInput::make('support_email')
+                                    ->label('E-mail')
+                                    ->email()
+                                    ->required(),
+                                TextInput::make('support_phone')
+                                    ->label('Téléphone')
+                                    ->required(),
+                                FileUpload::make('logo')
+                                    ->preserveFilenames()
+                                    ->disk('public')
+                                    ->visibility('public')
+                                    ->image(),
+                                FileUpload::make('logo_alt')
+                                    ->label('Logo alternatif')
+                                    ->preserveFilenames()
+                                    ->disk('public')
+                                    ->visibility('public')
+                                    ->image(),
+                                TextInput::make('logo_size')
+                                    ->label('Taille logo'),
+                                TextInput::make('logo_alt_size')
+                                    ->label('Taille Logo alternatif'),
+                                FileUpload::make('logo_mobile')
+                                    ->preserveFilenames()
+                                    ->disk('public')
+                                    ->visibility('public')
+                                    ->image(),
+                                FileUpload::make('favicon')
+                                    ->preserveFilenames()
+                                    ->disk('public')
+                                    ->visibility('public')
+                                    ->image(),
+                                TextInput::make('logo_mobile_size')
+                                    ->label('Taille logo mobile'),
+
+                            ]),
+
                     ])
 
             ]);

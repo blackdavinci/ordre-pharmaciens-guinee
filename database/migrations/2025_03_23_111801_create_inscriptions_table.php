@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('inscriptions', function (Blueprint $table) {
             $table->id();
+            $table->string('numero_inscription')->unique()->nullable();
             $table->string('rpgm')->nullable();
             $table->string('prenom');
             $table->string('nom');
@@ -23,6 +24,7 @@ return new class extends Migration
             $table->string('nationalite');
             $table->boolean('citoyen_guineen')->default(false);
 
+            $table->string('inscription_token')->nullable()->index();
 
             // Localisation
             $table->string('pays_residence');
@@ -38,7 +40,6 @@ return new class extends Migration
             $table->string('profil'); // assistant, biologiste, délégué médical, etc.
             $table->enum('section', ['section a', 'section b'])->nullable();
             $table->year('annee_obtention_diplome');
-            $table->string('numero_diplome')->nullable();
             $table->boolean('diplome_etranger')->default(false);
             $table->boolean('salarie')->default(false);
 
@@ -49,6 +50,7 @@ return new class extends Migration
             $table->dateTime('date_validation')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
 
+            $table->timestamp('expiration_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

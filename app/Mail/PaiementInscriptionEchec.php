@@ -39,7 +39,7 @@ class PaiementInscriptionEchec extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'view.mail.paiement-inscription-echec',
+            view: 'view.mail.paiement-inscription-echec.blade.php',
         );
     }
 
