@@ -45,10 +45,10 @@ class InscriptionPolicy
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Inscription $inscription): bool
-    {
-        return $user->can('delete_inscription');
-    }
+//    public function delete(User $user, Inscription $inscription): bool
+//    {
+//        return $user->can('delete_inscription');
+//    }
 
     /**
      * Determine whether the user can bulk delete.

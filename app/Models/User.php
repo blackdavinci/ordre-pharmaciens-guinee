@@ -36,7 +36,7 @@ class User extends Authenticatable
         // Example condition: Allow access only to users with specific email domain and verified email
 
         // Check if the user has one of the allowed roles
-        $allowedRoles = ['super-admin', 'membre', 'president'];
+        $allowedRoles = ['super_admin', 'membre', 'president'];
 
         if ($this->hasAnyRole($allowedRoles) && $this->status) {
             return true;

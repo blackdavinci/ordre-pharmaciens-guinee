@@ -114,7 +114,7 @@ class PaymentController extends Controller
 //                    ->subject('Nouvelle Inscription  - ONPG');
 //            });
 
-            return redirect()->route('inscription.success', ['numero' => $numeroInscription]);
+//            return redirect()->route('inscription.success', ['numero' => $numeroInscription]);
 
             $response = $this->paycardService->createPayment($paymentData);
             return redirect($response['payment_url']);

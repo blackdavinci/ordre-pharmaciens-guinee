@@ -22,11 +22,11 @@ class SuperAdminSeeder extends Seeder
                 'nom' => 'Moran',
                 'password' => bcrypt('supersecure'), // 🔐 à personnaliser
                 'email_verified_at' => now(),
-                'statut' => 'actif',
+                'statut' => true,
             ]
         );
 
-        $role = Role::firstOrCreate(['name' => 'super-admin']);
+        $role = Role::firstOrCreate(['name' => 'super_admin']);
         $superAdmin->assignRole($role);
     }
 }

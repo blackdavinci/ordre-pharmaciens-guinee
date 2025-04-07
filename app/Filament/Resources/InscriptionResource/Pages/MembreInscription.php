@@ -1,59 +1,24 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Resources\InscriptionResource\Pages;
 
-use App\Filament\Resources\InscriptionResource\Pages;
-use App\Filament\Resources\InscriptionResource\RelationManagers;
+use App\Filament\Resources\InscriptionResource;
 use App\Models\Inscription;
-use App\Models\User;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Filament\Forms;
-use Filament\Forms\Components\DatePicker;
+use Carbon\Carbon;
 use Filament\Infolists\Components\Grid;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Wizard;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Notifications\Notification;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;  // Import the DB facade
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use Parfaitementweb\FilamentCountryField\Infolists\Components\CountryEntry;
-use Parfaitementweb\FilamentCountryField\Tables\Columns\CountryColumn;
-use Snowfire\Beautymail\Beautymail;
-use Spatie\Permission\Models\Role;
-use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
-use Filament\Infolists;
 use Filament\Infolists\Infolist;
-use Carbon\Carbon;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\Page;
+use Parfaitementweb\FilamentCountryField\Infolists\Components\CountryEntry;
 
-class InscriptionResource extends Resource
+class MembreInscription extends Page
 {
-    protected static ?string $model = Inscription::class;
+    protected static string $resource = InscriptionResource::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
-    public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-
-            ]);
-    }
+    protected static string $view = 'filament.resources.inscription-resource.pages.membre-inscription';
 
     public static function infolist(Infolist $infolist): Infolist
     {
@@ -394,133 +359,4 @@ class InscriptionResource extends Resource
 
             ]);
     }
-
-    public static function table(Table $table): Table
-    {
-        return $table
-            ->columns([
-                TextColumn::make('id')->label('ID')->searchable(),
-                SpatieMediaLibraryImageColumn::make('photo_identite')
-                    ->collection('photo_identite')
-                    ->label('Photo ID')
-                    ->circular(),
-                TextColumn::make('nom')
-                    ->label('Prénom & Nom')
-                    ->searchable()
-                    ->formatStateUsing(function ($state, Inscription $inscription) {
-                        return $inscription->nom . ' ' . $inscription->prenom;
-                    }),
-                TextColumn::make('email')->label('Email')->searchable(),
-                TextColumn::make('telephone_mobile')->label('Telephone')->searchable(),
-                CountryColumn::make('nationalite')->label('Nationalité')->searchable(),
-
-            ])
-            ->filters([
-            ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->hiddenLabel()
-                    ->color('primary'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListInscriptions::route('/'),
-            'create' => Pages\CreateInscription::route('/create'),
-            'view' => Pages\ViewInscription::route('/{record}'),
-            'edit' => Pages\EditInscription::route('/{record}/edit'),
-        ];
-    }
-
-    public function approveInscription(Inscription $record)
-    {
-
-        DB::transaction(function () use ($record) {
-            // Generate unique registration code
-            $code = 'ORD-' . strtoupper(Str::random(8));
-
-            // Generate PDF certificate
-            $pdf = Pdf::loadView('pharmaciens.attestations.pdf-attestation', [
-                'inscription' => $record,
-                'code' => $code
-            ]);
-
-            // Sauvegarder le PDF dans la bibliothèque de médias Spatie
-            $pdfPath = 'attestations/attestation-' . $record->id . '.pdf'; // Défini le chemin du fichier dans la collection
-            $pdfContent = $pdf->output(); // Contenu du PDF généré
-
-            // Ajouter le fichier PDF à la collection 'attestations' de l'inscription
-            $record->addMediaFromString($pdfContent)
-                ->usingFileName('attestation-' . $record->id . '.pdf') // Nom du fichier
-                ->toMediaCollection('attestations'); // Ajouter à la collection 'attestations'
-
-            // Generate random password
-            $password = Str::random(12);
-
-            // Create user account
-            $user = User::create([
-                'name' => User::makeUniqueName($record->nom, $record->prenom),
-                'prenom' => $record->prenom,
-                'nom' => $record->nom,
-                'email' => $record->email,
-                'telephone' => $record->telephone_mobile,
-                'password' => Hash::make($password),
-                'status' => true,
-            ]);
-
-            // Update registration status
-            $record->update([
-                'statut' => 'approved',
-                'rpgm' => $code,
-                'user_id' => $user->id,
-            ]);
-
-            // Assign role
-            $role = Role::findByName('membre');
-            $user->assignRole($role);
-
-            // Envoi des emails d'approbation
-            $beautymail = app()->make(Beautymail::class);
-            $beautymail->send('emails.inscription-approved', ['inscription' => $record], function ($message) use ($record) {
-                $message
-                    ->from('ousmaneciss1@gmail.com')
-                    ->to($record->email, $record->prenom.' '.$record->nom)
-                    ->subject('Votre inscription a été approuvée - ONPG');
-            });
-
-            // Envoi des informations de compte utilisateur
-            $beautymail->send('emails.user-account', ['user' => $user, 'password' => $password], function ($message) use ($user) {
-                $message
-                    ->from('ousmaneciss1@gmail.com')
-                    ->to($user->email, $user->prenom.' '.$user->nom)
-                    ->subject('Votre compte a été créé - ONPG');
-            });
-
-            // Clean up PDF file after sending
-            if (file_exists($pdfPath)) {
-                unlink($pdfPath);
-            }
-        });
-
-        Notification::make()
-            ->title('Inscription Approuvée')
-            ->body("L'inscription a été approuvée et les emails ont été envoyés.")
-            ->success()
-            ->send();
-    }
-
 }
