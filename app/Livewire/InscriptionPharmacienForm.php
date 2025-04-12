@@ -326,7 +326,7 @@ class InscriptionPharmacienForm extends Component implements HasForms
 
             DB::commit();
 
-//            session()->forget('saved_data');
+            session()->forget('saved_data');
 
             return redirect()->route('payment.initiate', [
                 'token' => $token,

@@ -17,6 +17,9 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Parfaitementweb\FilamentCountryField\Forms\Components\Country;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 
@@ -266,37 +269,80 @@ class ReInscription extends Page
         ];
     }
 
-    public function save(): void
+    public function save()
     {
         try {
-            // Get the form data
+            // Récupérer les données du formulaire
             $data = $this->form->getState();
+            $rawData = $this->form->getRawState();
+            $token = Str::uuid();
+            $data['inscription_token'] = $token;
 
-            // Check if a Setting record exists
-            $inscription = Inscription::first();
+            DB::beginTransaction();
 
-            if (!$inscription) {
-                // Send a notification if no record exists
-                Inscription::create($data);
-            }else{
+            // Vérifier si le record existe déjà (ce qui est le cas pour une réinscription)
+            if ($this->inscription) {
+                // Pour les champs uniques, on vérifie s'ils ont changé avant de mettre à jour
+                $uniqueFields = ['email', 'telephone_mobile']; // Ajoutez ici tous vos champs uniques
 
-                // Save the data (create or update)
-                $inscription->update($data);
-                $inscription->save();
+                // Préparation des données à mettre à jour
+                $updateData = $data;
 
-                // Send a success notification after saving
+                // Pour chaque champ unique, vérifier s'il a changé
+                foreach ($uniqueFields as $field) {
+                    if (isset($data[$field]) && $data[$field] == $this->inscription->$field) {
+                        // Si le champ n'a pas changé, on le retire des données à mettre à jour
+                        // pour éviter les erreurs de contrainte d'unicité
+                        unset($updateData[$field]);
+                    }
+                }
+
+                // Mettre à jour l'inscription avec les données modifiées
+                $this->inscription->update($updateData);
+
+                // Traitement des fichiers multimédias
+                foreach ($rawData as $field => $files) {
+                    if (is_array($files)) {
+                        foreach ($files as $file) {
+                            if ($file instanceof TemporaryUploadedFile) {
+                                // Supprimer les anciens médias de cette collection si nécessaire
+                                // (optionnel, selon votre logique métier)
+                                // $this->inscription->clearMediaCollection($field);
+
+                                // Ajouter le nouveau média
+                                $this->inscription->addMedia($file->getRealPath())
+                                    ->toMediaCollection($field);
+                            }
+                        }
+                    }
+                }
+
+                DB::commit();
+
+                return redirect()->route('payment.initiate', [
+                    'token' => $token,
+                ]);
+
+                // Notification de succès
                 Notification::make()
                     ->success()
-                    ->title('Paramètres sauvegardés')
-                    ->body('Les paramètres ont été enregistrés avec succès.')
+                    ->title('Réinscription réussie')
+                    ->body('Votre réinscription a été enregistrée avec succès.')
                     ->send();
+
+                // Si vous souhaitez rediriger vers une page de paiement comme dans votre exemple
+                // Décommentez ces lignes et ajustez selon vos besoins
+                // return redirect()->route('payment.initiate', [
+                //     'token' => $this->inscription->inscription_token,
+                // ]);
             }
         } catch (\Exception $e) {
-            // Handle errors and send an error notification
+            DB::rollBack();
+
             Notification::make()
                 ->danger()
-                ->title('Error')
-                ->body('There was an error saving the settings: ' . $e->getMessage())
+                ->title('Erreur')
+                ->body('Une erreur est survenue lors de la réinscription: ' . $e->getMessage())
                 ->send();
         }
 

@@ -42,9 +42,6 @@ class MonInscription extends Page
         if (!$this->record) {
             abort(404, 'Inscription non trouvée.');
         }
-
-        dd($this->record);
-
         // Si l'inscription existe, elle est maintenant disponible dans la propriété $this->record
     }
 
