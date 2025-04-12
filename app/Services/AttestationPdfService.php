@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use TCPDF;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 
 class AttestationPdfService
 {
@@ -76,11 +78,75 @@ class AttestationPdfService
         // Image example with resizing
         $pdf->Image($signaturePath, 230, 155, 25, 25, '', '', '', false, 300);
 
+
         // Date et lieu
         $pdf->SetXY(220, 180);
-        $pdf->Cell(60, 10, 'Pr. Hassane BAH', 0, 1, 'L');
+        $pdf->Cell(60, 10, 'Pr. '.$data['presidentNom'], 0, 1, 'L');
+
+        // Générer le QR code
+        $this->generateCustomQRCode(
+            $pdf,
+            'http://pharmaciens.conakryconnect.com/verify/'.$data['rngpsNumero'],
+            140,   // Position X
+            160,   // Position Y
+            20,    // Taille globale (mm)
+            [40, 81, 156],  // Couleur bleue (RGB)
+            0.8,   // Module width
+            0.8,   // Module height
+             // Logo à superposer
+        );
 
 
         return $pdf->Output('attestation.pdf', 'S');
     }
+
+    protected function generateCustomQRCode(
+        TCPDF $pdf,
+        string $url,
+        float $x,
+        float $y,
+        float $size,
+        array $color,
+        float $moduleWidth,
+        float $moduleHeight,
+        ?string $logoPath = null
+    ): void {
+        $style = [
+            'border' => 0,
+            'vpadding' => 'auto',
+            'hpadding' => 'auto',
+            'fgcolor' => $color,    // Couleur personnalisée
+            'bgcolor' => [255,255,255], // Fond blanc
+            'module_width' => $moduleWidth,
+            'module_height' => $moduleHeight
+        ];
+
+        // Génération du QR Code
+        $pdf->write2DBarcode($url, 'QRCODE,H', $x, $y, $size, $size, $style, 'N');
+
+        // Superposition du logo si fourni
+        if ($logoPath && file_exists($logoPath)) {
+            $logoSize = $size * 0.3; // Logo fait 30% de la taille du QR
+            $logoX = $x + ($size - $logoSize) / 2;
+            $logoY = $y + ($size - $logoSize) / 2;
+
+            $pdf->Image(
+                $logoPath,
+                $logoX,
+                $logoY,
+                $logoSize,
+                $logoSize,
+                '',
+                '',
+                '',
+                false,
+                300
+            );
+        }
+
+    }
+
+
 }
+
+

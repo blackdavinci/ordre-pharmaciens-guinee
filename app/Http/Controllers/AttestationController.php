@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Inscription;
 use App\Settings\DocumentSettings;
+use App\Settings\GeneralSettings;
 use Illuminate\Http\Request;
 use App\Services\AttestationPdfService;
 use Illuminate\Http\Response;
@@ -21,9 +22,10 @@ class AttestationController extends Controller
     public function generatePDF(Request $request)
     {
         // Vous pouvez adapter cela pour récupérer les données depuis un formulaire ou une base de données
-        $inscription = Inscription::findOrFail(4);
+        $inscription = Inscription::first();
         $signature_president = public_path('storage/'.app(DocumentSettings::class)->signature_president);
-        $attestation_background_url = public_path('storage/'.app(DocumentSettings::class)->attestation_background) ;
+        $attestation_background_url = public_path('storage/'.app(DocumentSettings::class)->attestation_background);
+        $logo = public_path('storage/'.app(GeneralSettings::class)->logo) ;
 
         $data = [
             'presidentNom' => app(DocumentSettings::class)->nom_president,
@@ -35,6 +37,8 @@ class AttestationController extends Controller
             'dateOfValidation' => $inscription->date_validation,
             'signatureAttestation' => $signature_president,
             'backgroundAttestation' => $attestation_background_url,
+            'logo' => $logo
+
         ];
 
         $pdf = $this->pdfService->generate($data);

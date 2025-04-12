@@ -41,7 +41,7 @@ return new class extends Migration
             // Profil professionnel
             $table->string('profil'); // assistant, biologiste, délégué médical, etc.
             $table->enum('section', ['section a', 'section b'])->nullable();
-            $table->integer('annee_obtention_diplome');
+            $table->string('annee_obtention_diplome');
             $table->boolean('diplome_etranger')->default(false);
             $table->boolean('salarie')->default(false);
 
@@ -49,10 +49,11 @@ return new class extends Migration
             $table->enum('statut', ['pending', 'approved', 'rejected'])->default('pending');
             $table->text('motif_rejet')->nullable();
             $table->boolean('frais_paiement')->default(false);
-            $table->dateTime('date_validation')->nullable();
+            $table->dateTime('valid_from')->nullable();
+            $table->dateTime('valid_until')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
 
-            $table->timestamp('expiration_at')->nullable();
+            $table->timestamp('inscription_draft_expiration_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

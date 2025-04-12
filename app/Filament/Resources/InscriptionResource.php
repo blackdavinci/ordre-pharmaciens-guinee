@@ -491,6 +491,8 @@ class InscriptionResource extends Resource
                 'statut' => 'approved',
                 'numero_rngps' => $rngps,
                 'user_id' => $user->id,
+                'valid_from' => Carbon::now(),
+                'valid_until' => Carbon::now()->addYear(),
             ]);
 
             // Assign role
@@ -510,10 +512,10 @@ class InscriptionResource extends Resource
                 'presidentNom' => app(DocumentSettings::class)->nom_president,
                 'rngpsNumero' => $inscription->numero_rngps,
                 'medecinNumero' => $inscription->numero_medecin,
-                'validiteAttesation' => $inscription->expiration_at,
+                'validiteAttesation' => $inscription->valid_until,
                 'pharmacienNom' => $inscription->prenom.' '.$inscription->nom,
                 'pharmacienProfil' => ucfirst($inscription->profil),
-                'dateOfValidation' => $inscription->date_validation,
+                'dateOfValidation' => $inscription->valid_from,
                 'signatureAttestation' => $signature_president,
                 'backgroundAttestation' => $attestation_background_url,
             ];

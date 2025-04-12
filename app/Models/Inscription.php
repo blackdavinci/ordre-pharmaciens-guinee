@@ -16,6 +16,7 @@ class Inscription extends Model implements HasMedia
      *
      * @var list<string>
      */
+    protected $dates = ['valid_from', 'valid_until'];
     protected $fillable = [
         'numero_inscription',
         'numero_rngps',
@@ -45,7 +46,8 @@ class Inscription extends Model implements HasMedia
         'statut',
         'motif_rejet',
         'frais_paiement',
-        'date_validation',
+        'valid_from',
+        'valid_until',
         'user_id',
         'statut',
         'inscription_token',
@@ -109,6 +111,27 @@ class Inscription extends Model implements HasMedia
         $identification->save();
 
         return "{$id}/{$code_etablissement}/{$annee}";
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('statut', true)
+            ->where('valid_until', '>', now());
+    }
+
+    public function activate()
+    {
+        // Désactive toutes les autres inscriptions
+        $this->user->inscriptions()
+            ->where('is_active', true)
+            ->update(['is_active' => false]);
+
+        // Active la nouvelle inscription
+        $this->update([
+            'is_active' => true,
+            'valid_from' => now(),
+            'valid_until' => now()->addYear() // 1 an de validité
+        ]);
     }
 
 

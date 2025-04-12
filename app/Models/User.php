@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -11,7 +12,7 @@ use Illuminate\Support\Str;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasRoles, InteractsWithMedia;
@@ -38,7 +39,7 @@ class User extends Authenticatable
         // Check if the user has one of the allowed roles
         $allowedRoles = ['super_admin', 'membre', 'president'];
 
-        if ($this->hasAnyRole($allowedRoles) && $this->status) {
+        if ($this->hasAnyRole($allowedRoles) && $this->statut) {
             return true;
         }
 

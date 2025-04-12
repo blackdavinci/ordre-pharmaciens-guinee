@@ -310,7 +310,7 @@ class InscriptionPharmacienForm extends Component implements HasForms
                 'inscription_token' => $token,
                 'numero_inscription' => $numeroInscription,
                 'statut' => 'pending',
-                'expiration_at' => now()->addHours(48),
+                'inscription_draft_expiration_at' => now()->addHours(48),
             ]));
 
             foreach ($rawData as $field => $files) {
