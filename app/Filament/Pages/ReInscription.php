@@ -1,55 +1,62 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Filament\Pages;
 
 use App\Models\Inscription;
-use App\Models\Paiement;
 use App\Settings\IdentificationSettings;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\MarkdownEditor;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Wizard;
 use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
-use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Livewire\Component;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Filament\Pages\Page;
 use Parfaitementweb\FilamentCountryField\Forms\Components\Country;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 
-class InscriptionPharmacienForm extends Component implements HasForms
+class ReInscription extends Page
 {
-    use InteractsWithForms;
+
+    use InteractsWithForms, HasPageShield;
 
     public ?array $data = [];
+    protected static ?string $navigationLabel = 'Réinscription';
 
-    public function mount(Inscription $inscription): void
+    protected static ?string $title = "Réinscription";
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
+    protected static string $view = 'filament.pages.re-inscription';
+
+    public $record;
+
+    public ?Inscription $inscription = null; // Ajoutez cette ligne
+
+    public function mount()
     {
-        $this->inscription = $inscription;
-
-        if ($savedData = session()->get('saved_data')) {
-
-            $this->form->fill($savedData);
-
-        } else {
-            $formData = $this->inscription->toArray();
-
-            $this->form->fill($formData);
+        // Vérifier si l'utilisateur est connecté
+        if (!auth()->check()) {
+            abort(403, 'Vous devez être connecté pour accéder à cette page.');
         }
+
+        // Récupérer l'inscription de l'utilisateur connecté
+        $this->inscription = Inscription::where('user_id', auth()->id())->first();
+        $this->record = $this->inscription; // Assurez-vous que $record pointe vers le même objet
+
+        // Vérifier si l'inscription existe
+        if (!$this->inscription) {
+            abort(404, 'Inscription non trouvée.');
+        }
+
+        // Remplir le tableau $data avec les données du modèle
+        $this->form->fill($this->inscription->toArray());
+
     }
-
-
-    public Inscription $inscription;
 
     public function form(Form $form): Form
     {
@@ -241,113 +248,63 @@ class InscriptionPharmacienForm extends Component implements HasForms
             ->model($this->inscription);
     }
 
-    public function saveLocally(): void
+
+    protected function getHeaderActions(): array
     {
-        // Get raw form data without validation
-    $rawData = $this->form->getRawState();
+        return [
 
-    // Prepare data for session storage
-    $sessionData = [];
-
-    foreach ($rawData as $key => $value) {
-        // Skip file upload objects
-        if ($value instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
-            continue;
-        }
-
-        // Handle collections of files
-        if (is_array($value)) {
-            $sessionData[$key] = array_filter($value, function ($item) {
-                return !($item instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile);
-            });
-        } else {
-            $sessionData[$key] = $value;
-        }
+        ];
     }
 
-    // Save to session
-    session()->put('saved_data', $sessionData);
-
-        // Afficher une notification avec Filament
-        Notification::make()
-            ->title('Données enregistrées')
-            ->body('Les informations ont été enregistrées localement.')
-            ->success() // Vous pouvez aussi utiliser ->warning() ou ->error() selon le contexte
-            ->send();
-
-        // Facultatif : Afficher un message de succès via la session
-        session()->flash('message', 'Données enregistrées localement');
+    protected function getFormActions(): array
+    {
+        return [
+            Action::make('save')
+                ->label(__('filament-panels::resources/pages/edit-record.form.actions.save.label'))
+                ->requiresConfirmation()
+                ->submit('save'),
+        ];
     }
 
-
-
-    public function create()
+    public function save(): void
     {
-        $data = $this->form->getState();
-        $rawData = $this->form->getRawState();
-        $token = Str::uuid();
-
-        DB::beginTransaction();
-
         try {
+            // Get the form data
+            $data = $this->form->getState();
 
-            // Récupérer le dernier numéro d'inscription de l'année en cours
-            $lastInscription = Inscription::whereYear('created_at', date('Y'))
-                ->orderBy('created_at', 'desc')
-                ->first();
+            // Check if a Setting record exists
+            $inscription = Inscription::first();
 
-            // Définir le préfixe de l'inscription avec l'année en cours
-            $prefix = 'INS-' . date('Y') . '-';
+            if (!$inscription) {
+                // Send a notification if no record exists
+                Inscription::create($data);
+            }else{
 
-            // Si aucune inscription n'existe pour l'année en cours, commencer avec 000001
-            $lastNumber = $lastInscription ? (int) substr($lastInscription->numero_inscription, 9) : 0;
-            $newNumber = str_pad($lastNumber + 1, 6, '0', STR_PAD_LEFT); // Ajouter des zéros pour faire 6 chiffres
+                // Save the data (create or update)
+                $inscription->update($data);
+                $inscription->save();
 
-            // Générer le numéro d'inscription
-            $numeroInscription = $prefix . $newNumber;
-
-            $inscription = Inscription::create(array_merge($data, [
-                'inscription_token' => $token,
-                'numero_inscription' => $numeroInscription,
-                'statut' => 'pending',
-                'expiration_at' => now()->addHours(48),
-            ]));
-
-            foreach ($rawData as $field => $files) {
-                if (is_array($files)) {
-                    foreach ($files as $file) {
-                        if ($file instanceof TemporaryUploadedFile) {
-                            $inscription->addMedia($file->getRealPath())
-                                ->toMediaCollection($field);
-                        }
-                    }
-                }
+                // Send a success notification after saving
+                Notification::make()
+                    ->success()
+                    ->title('Paramètres sauvegardés')
+                    ->body('Les paramètres ont été enregistrés avec succès.')
+                    ->send();
             }
-
-            DB::commit();
-
-//            session()->forget('saved_data');
-
-            return redirect()->route('payment.initiate', [
-                'token' => $token,
-            ]);
-
         } catch (\Exception $e) {
-            DB::rollBack();
-
+            // Handle errors and send an error notification
             Notification::make()
-                ->title('Erreur')
-                ->body($e->getMessage())
                 ->danger()
+                ->title('Error')
+                ->body('There was an error saving the settings: ' . $e->getMessage())
                 ->send();
         }
 
-        return null;
     }
 
-
-    public function render()
+    protected function mutateFormDataBeforeSave(array $data): array
     {
-        return view('livewire.inscription-pharmacien');
+        // Customize the save behavior if needed
+        return $data;
     }
 }

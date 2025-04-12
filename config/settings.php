@@ -1,6 +1,8 @@
 <?php
 
+use App\Settings\DocumentSettings;
 use App\Settings\GeneralSettings;
+use App\Settings\IdentificationSettings;
 use App\Settings\PaiementSettings;
 
 return [
@@ -11,7 +13,9 @@ return [
      */
     'settings' => [
         GeneralSettings::class,
-        PaiementSettings::class
+        PaiementSettings::class,
+        IdentificationSettings::class,
+        DocumentSettings::class,
     ],
 
     /*

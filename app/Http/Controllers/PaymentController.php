@@ -106,6 +106,7 @@ class PaymentController extends Controller
             $numeroInscription = $paiement->inscription->numero_inscription;
 
 
+
 //            $beautymail = app()->make(Beautymail::class);
 //            $beautymail->send('emails.notification-inscription', [], function ($message) use ($president) {
 //                $message
@@ -114,7 +115,7 @@ class PaymentController extends Controller
 //                    ->subject('Nouvelle Inscription  - ONPG');
 //            });
 
-//            return redirect()->route('inscription.success', ['numero' => $numeroInscription]);
+            return redirect()->route('inscription.success', ['numero' => $numeroInscription]);
 
             $response = $this->paycardService->createPayment($paymentData);
             return redirect($response['payment_url']);

@@ -37,9 +37,9 @@ class CreateUser extends CreateRecord
 
         $selectedRoles = $this->data['roles'] ?? []; // Retrieve selected roles from form data
 
-        $adminRole = Role::where('name', 'super-admin')->first();
+        $adminRole = Role::where('name', 'super_admin')->first();
 
-        if ( $adminRole->id ==  $selectedRoles && !$authUser->hasRole('moderateur')) {
+        if ( $adminRole->id ==  $selectedRoles && !$authUser->hasRole('super_admin')) {
             abort(403, 'Vous n’êtes pas autorisé à effectuer cette action.');
         }
 
@@ -50,12 +50,13 @@ class CreateUser extends CreateRecord
         $record = $this->record;
         $password = $this->plainPassword;
 
+        // Envoi des informations de compte utilisateur
         $beautymail = app()->make(Beautymail::class);
-        $beautymail->send('emails.inscription-approved', [], function ($message) use ($record, $password) {
+        $beautymail->send('emails.user-account', ['user' => $record, 'password' => $password], function ($message) use ($record) {
             $message
                 ->from('ousmaneciss1@gmail.com')
                 ->to($record->email, $record->prenom.' '.$record->nom)
-                ->subject('Votre inscription a été approuvée - ONPG');
+                ->subject('Votre compte a été créé - ONPG');
         });
     }
 

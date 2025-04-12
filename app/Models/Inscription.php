@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Settings\IdentificationSettings;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -17,6 +18,8 @@ class Inscription extends Model implements HasMedia
      */
     protected $fillable = [
         'numero_inscription',
+        'numero_rngps',
+        'numero_medecin',
         'prenom',
         'nom',
         'genre',
@@ -35,6 +38,7 @@ class Inscription extends Model implements HasMedia
         'section',
         'annee_obtention_diplome',
         'numero_diplome',
+        'code_etablissement',
         'diplome_etranger',
         'equivalence_diplome',
         'salarie',
@@ -80,6 +84,31 @@ class Inscription extends Model implements HasMedia
         $this->addMediaCollection('fiche_inscription');
         $this->addMediaCollection('equivalence_diplome');
         $this->addMediaCollection('attestations');
+    }
+
+    // Méthode pour générer automatiquement le numéro rngps
+    public function generateRngps()
+    {
+        $identification = app(IdentificationSettings::class); // Récupérer les paramètres
+
+        // Utiliser numero_debut pour le premier pharmacien
+        if (is_null($identification->dernier_identifiant)) {
+            // Si c'est le premier pharmacien, on utilise numero_debut
+            $id = $identification->debut_identifiant;
+        } else {
+            // Sinon, on incrémente le dernier numéro généré
+            $id = $identification->dernier_identifiant + 1;
+        }
+
+        // S'assurer que code_etablissement existe
+        $code_etablissement = $this->code_etablissement ?? 'DEFAULT';
+        $annee = date('Y');
+
+        // Mettre à jour le dernier numéro généré dans les paramètres
+        $identification->dernier_identifiant = $id;
+        $identification->save();
+
+        return "{$id}/{$code_etablissement}/{$annee}";
     }
 
 

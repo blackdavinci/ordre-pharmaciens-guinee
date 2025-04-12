@@ -1,68 +1,58 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Pages;
 
-use App\Filament\Resources\InscriptionResource\Pages;
-use App\Filament\Resources\InscriptionResource\RelationManagers;
 use App\Models\Inscription;
-use App\Models\User;
-use App\Services\AttestationPdfService;
-use App\Settings\DocumentSettings;
 use App\Settings\IdentificationSettings;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Filament\Forms;
-use Filament\Forms\Components\DatePicker;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Infolists\Components\Grid;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Wizard;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Infolists\Components\IconEntry;
-use Filament\Infolists\Components\Section;
+use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
 use Filament\Infolists\Components\Tabs;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Navigation\NavigationItem;
-use Filament\Notifications\Notification;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;  // Import the DB facade
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Parfaitementweb\FilamentCountryField\Infolists\Components\CountryEntry;
-use Parfaitementweb\FilamentCountryField\Tables\Columns\CountryColumn;
-use Snowfire\Beautymail\Beautymail;
-use Spatie\Permission\Models\Role;
-use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
-use Filament\Infolists;
 use Filament\Infolists\Infolist;
-use Carbon\Carbon;
+use Filament\Pages\Page;
+use Illuminate\Support\Carbon;
+use Parfaitementweb\FilamentCountryField\Infolists\Components\CountryEntry;
 
-class InscriptionResource extends Resource
+class MonInscription extends Page
 {
-    protected static ?string $model = Inscription::class;
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    use HasPageShield;
+    protected static ?string $navigationLabel = 'Mon Inscription';
 
-    public static function form(Form $form): Form
+    protected static ?string $title = "Mon inscription";
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
+    protected static string $view = 'filament.pages.mon-inscription';
+
+    // Déclaration explicite de la propriété record
+    public $record;
+
+    public function mount()
     {
-        return $form
-            ->schema([
+        // Vérifier si l'utilisateur est connecté
+        if (!auth()->check()) {
+            abort(403, 'Vous devez être connecté pour accéder à cette page.');
+        }
 
-            ]);
+        // Récupérer l'inscription de l'utilisateur connecté (utilise l'ID de l'utilisateur)
+        $this->record = Inscription::where('user_id', auth()->id())->first();
+
+        // Vérifier si l'inscription existe pour l'utilisateur connecté
+        if (!$this->record) {
+            abort(404, 'Inscription non trouvée.');
+        }
+
+        dd($this->record);
+
+        // Si l'inscription existe, elle est maintenant disponible dans la propriété $this->record
     }
 
-    public static function infolist(Infolist $infolist): Infolist
+
+    public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
+            ->record($this->record)
             ->schema([
                 Tabs::make('Tabs')
                     ->tabs([
@@ -73,7 +63,7 @@ class InscriptionResource extends Resource
                                         Grid::make()
                                             ->columnSpan(2)
                                             ->schema([
-                                                Infolists\Components\SpatieMediaLibraryImageEntry::make('photo_identite')
+                                                SpatieMediaLibraryImageEntry::make('photo_identite')
                                                     ->collection('photo_identite')
                                                     ->label('Photo ID')
                                                     ->hiddenLabel()
@@ -107,7 +97,7 @@ class InscriptionResource extends Resource
                                                     ->label('Date de naissance')
                                                     ->formatStateUsing(function ($state) {
                                                         // Format the date in French format
-                                                        $date = Carbon::parse($state);
+                                                        $date = \Carbon\Carbon::parse($state);
                                                         return $date->isoFormat('D MMMM YYYY');  // Example: 25 janvier 2023
                                                     }),
                                                 CountryEntry::make('pays_naissance')
@@ -414,156 +404,4 @@ class InscriptionResource extends Resource
 
             ]);
     }
-
-    public static function table(Table $table): Table
-    {
-        return $table
-            ->columns([
-                TextColumn::make('id')->label('ID')->searchable(),
-                SpatieMediaLibraryImageColumn::make('photo_identite')
-                    ->collection('photo_identite')
-                    ->label('Photo ID')
-                    ->circular(),
-                TextColumn::make('nom')
-                    ->label('Prénom & Nom')
-                    ->searchable()
-                    ->formatStateUsing(function ($state, Inscription $inscription) {
-                        return $inscription->nom . ' ' . $inscription->prenom;
-                    }),
-                TextColumn::make('email')->label('Email')->searchable(),
-                TextColumn::make('telephone_mobile')->label('Telephone')->searchable(),
-                CountryColumn::make('nationalite')->label('Nationalité')->searchable(),
-
-            ])
-            ->filters([
-            ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->hiddenLabel()
-                    ->color('primary'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListInscriptions::route('/'),
-            'create' => Pages\CreateInscription::route('/create'),
-            'view' => Pages\ViewInscription::route('/{record}'),
-            'edit' => Pages\EditInscription::route('/{record}/edit'),
-        ];
-    }
-
-    public function approveInscription(Inscription $inscription)
-    {
-        DB::transaction(function () use ($inscription) {
-            // Generate unique registration code
-            $rngps = $inscription->generateRngps();
-
-            // Generate random password
-            $password = Str::random(12);
-
-            // Create user account
-            $user = User::create([
-                'name' => User::makeUniqueName($inscription->nom, $inscription->prenom),
-                'prenom' => $inscription->prenom,
-                'nom' => $inscription->nom,
-                'email' => $inscription->email,
-                'telephone' => $inscription->telephone_mobile,
-                'password' => Hash::make($password),
-                'statut' => true,
-            ]);
-
-            // Update registration status
-            $inscription->update([
-                'statut' => 'approved',
-                'numero_rngps' => $rngps,
-                'user_id' => $user->id,
-            ]);
-
-            // Assign role
-            $role = Role::findByName('membre');
-            if($role==null){
-                Role::create(['name' => 'membre']);
-            }
-            $user->assignRole($role);
-
-            // 2. Générer l'attestation PDF avec TCPDF
-            $attestationService = app()->make(AttestationPdfService::class);
-
-            $signature_president = public_path('storage/'.app(DocumentSettings::class)->signature_president);
-            $attestation_background_url = public_path('storage/'.app(DocumentSettings::class)->attestation_background) ;
-
-            $data = [
-                'presidentNom' => app(DocumentSettings::class)->nom_president,
-                'rngpsNumero' => $inscription->numero_rngps,
-                'medecinNumero' => $inscription->numero_medecin,
-                'validiteAttesation' => $inscription->expiration_at,
-                'pharmacienNom' => $inscription->prenom.' '.$inscription->nom,
-                'pharmacienProfil' => ucfirst($inscription->profil),
-                'dateOfValidation' => $inscription->date_validation,
-                'signatureAttestation' => $signature_president,
-                'backgroundAttestation' => $attestation_background_url,
-            ];
-
-            $pdfContent = $attestationService->generate($data);
-
-            // 3. Générer un nom de fichier unique
-            $filename = 'attestation_' . $inscription->id . '_' . Str::random(8) . '.pdf';
-
-            // Sauvegarder le PDF dans la bibliothèque de médias Spatie
-            $media = $inscription->addMediaFromString($pdfContent)  // Add the PDF content to media
-            ->usingFileName($filename)  // Use the generated filename
-            ->withCustomProperties([
-                'generated_date' => now()->format('Y-m-d H:i:s'),
-                // Vous pouvez ajouter d'autres métadonnées ici
-            ])
-            ->toMediaCollection('attestations');  // Save it to the 'attestations' collection
-
-            // 6. Envoyer l'email avec Beautymail
-            $beautymail = app()->make(BeautyMail::class);
-            $beautymail->send('emails.inscription-approved', [
-                'inscription' => $inscription,
-                'date' => now()->format('d/m/Y'),
-            ], function ($message) use ($inscription, $media) {
-                $message
-                    ->from('ousmaneciss1@gmail.com')
-                    ->to($inscription->email, $inscription->prenom . ' ' . $inscription->nom)
-                    ->subject('Votre inscription a été approuvée - ONPG')
-                    // Attach the file using the file path from Spatie Media Library
-                    ->attach($media->getPath(), [
-                        'as' => 'attestation.pdf',
-                        'mime' => 'application/pdf',
-                    ]);
-            });
-
-
-            // Envoi des informations de compte utilisateur
-            $beautymail->send('emails.user-account', ['user' => $user, 'password' => $password], function ($message) use ($user) {
-                $message
-                    ->from('ousmaneciss1@gmail.com')
-                    ->to($user->email, $user->prenom.' '.$user->nom)
-                    ->subject('Votre compte a été créé - ONPG');
-            });
-        });
-
-        Notification::make()
-            ->title('Inscription Approuvée')
-            ->body("L'inscription a été approuvée et les emails ont été envoyés.")
-            ->success()
-            ->send();
-    }
-
 }

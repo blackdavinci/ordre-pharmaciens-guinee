@@ -14,7 +14,9 @@ return new class extends Migration
         Schema::create('inscriptions', function (Blueprint $table) {
             $table->id();
             $table->string('numero_inscription')->unique()->nullable();
-            $table->string('rpgm')->nullable();
+            $table->string('numero_rngps')->unique()->nullable();
+            $table->string('numero_medecin')->unique()->nullable();
+            $table->string('code_etablissement')->nullable();
             $table->string('prenom');
             $table->string('nom');
             $table->enum('genre', ['homme', 'femme'])->nullable();
@@ -39,7 +41,7 @@ return new class extends Migration
             // Profil professionnel
             $table->string('profil'); // assistant, biologiste, délégué médical, etc.
             $table->enum('section', ['section a', 'section b'])->nullable();
-            $table->year('annee_obtention_diplome');
+            $table->integer('annee_obtention_diplome');
             $table->boolean('diplome_etranger')->default(false);
             $table->boolean('salarie')->default(false);
 

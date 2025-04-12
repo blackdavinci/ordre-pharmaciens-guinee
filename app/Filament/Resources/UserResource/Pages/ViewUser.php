@@ -117,7 +117,7 @@ class ViewUser extends ViewRecord
     protected function getHeaderWidgets(): array
     {
         return [
-            UserResource\Widgets\StatsOverview::class,
+
         ];
     }
 

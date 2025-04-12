@@ -4,8 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
-use App\Models\City;
-use App\Models\Country;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
@@ -26,11 +24,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
+use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
-    protected static ?string $recordTitleAttribute = 'Utilisateurs';
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
@@ -63,9 +61,11 @@ class UserResource extends Resource
                                     TextInput::make('prenom')
                                         ->label('Prénom')
                                         ->required(),
-                                    TextInput::make('telephone')
-                                        ->label('Téléphone')
-                                        ->tel()
+                                    PhoneInput::make('telephone')
+                                        ->defaultCountry('GN')
+                                        ->validateFor(
+                                            lenient: true, // default: false
+                                        )
                                         ->required(),
                                     TextInput::make('email')
                                         ->email()
@@ -97,7 +97,7 @@ class UserResource extends Resource
                     ->formatStateUsing(fn ($state): string => Str::headline($state))
                     ->colors(['primary'])
                     ->searchable(),
-                ToggleColumn::make('status')
+                ToggleColumn::make('statut')
                     ->label('Statut'),
 
             ])
@@ -110,6 +110,9 @@ class UserResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->hiddenLabel()
+                    ->color('primary'),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([

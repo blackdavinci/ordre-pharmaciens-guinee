@@ -39,8 +39,7 @@ class ManageGeneralSettings extends SettingsPage
                                     ->required(),
                                 Textarea::make('about')
                                     ->label('A propos')
-                                    ->columnSpanFull()
-                                    ->required(),
+                                    ->columnSpanFull(),
                                 TextInput::make('support_email')
                                     ->label('E-mail')
                                     ->email()
@@ -79,7 +78,6 @@ class ManageGeneralSettings extends SettingsPage
                             ]),
 
                     ])
-
             ]);
     }
 }
