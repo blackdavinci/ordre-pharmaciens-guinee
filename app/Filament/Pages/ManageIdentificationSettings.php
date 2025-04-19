@@ -19,9 +19,9 @@ class ManageIdentificationSettings extends SettingsPage
     use HasPageShield;
     protected static ?string $navigationGroup = 'Paramètres';
     protected static ?int $navigationSort = 3;
-    protected static ?string $navigationLabel = 'Identification';
+    protected static ?string $navigationLabel = 'Numéro RNGPS';
 
-    protected static ?string $title = "Paramètres d'identification";
+    protected static ?string $title = "Paramètrage numéro RNGPS";
 
     protected static string $settings = IdentificationSettings::class;
 
@@ -41,15 +41,6 @@ class ManageIdentificationSettings extends SettingsPage
                                     ->label("Dernier numéro d'identifiant actuel")
                                     ->numeric()
                                     ->disabled(),
-                                Repeater::make('code_etablissement')
-                                    ->label('Identifiants établissement')
-                                    ->schema([
-                                        TextInput::make('nom')->label("Nom de l'établissement")->required(),
-                                        TextInput::make('code')->label("Code de l'établissement")->required(),
-                                    ])
-                                    ->required()
-                                    ->columnSpanFull()
-                                    ->columns(2),
                             ]),
 
                     ])

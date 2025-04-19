@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\ListeAttestations;
 use App\Models\Inscription;
 use App\Settings\IdentificationSettings;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
@@ -69,7 +70,26 @@ class MonInscription extends Page
                                                         'style' => 'object-fit: contain; width: 100%; height: 100%;'
                                                     ])
                                                     ->columnSpan(2),
-
+                                                TextEntry::make('statut')
+                                                    ->hiddenLabel()
+                                                    ->columnSpanFull()
+                                                    ->formatStateUsing(fn (string $state): string => match($state) {
+                                                        'approved' => 'STATUT ACTIF',
+                                                        'rejected' => 'REJETÉE',
+                                                        'pending' => 'EN ATTENTE  D\'APPROBATION',
+                                                        default => strtoupper($state),
+                                                    })
+                                                    ->badge()
+                                                    ->colors([
+                                                        'warning' => 'pending',
+                                                        'success' => 'approved',
+                                                        'danger' => 'rejected',
+                                                    ])
+                                                    ->icons([
+                                                        'heroicon-o-check-circle' => 'approved',
+                                                        'heroicon-o-x-circle' => 'rejected',
+                                                        'heroicon-o-clock' => 'pending',
+                                                    ]),
                                             ]),
                                         Grid::make()
                                             ->columnSpan(10)
@@ -78,8 +98,9 @@ class MonInscription extends Page
                                                     ->label('Numéro RNGPS')
                                                     ->badge()
                                                     ->formatStateUsing(fn ($state) => ucfirst($state)),
-                                                TextEntry::make('numero_medecin')
-                                                    ->label('Numéro Médécin')
+                                                TextEntry::make('numero_ordre')
+                                                    ->label('Numéro Ordre')
+                                                    ->badge()
                                                     ->formatStateUsing(fn ($state) => ucfirst($state)),
                                                 TextEntry::make('prenom')
                                                     ->label('Prénom')
@@ -152,21 +173,12 @@ class MonInscription extends Page
                                         Grid::make()
                                             ->columnSpan(12)
                                             ->schema([
-                                                TextEntry::make('annee_obtention_diplome')
-                                                    ->label("Année d'obtention du diplôme")
+                                                TextEntry::make('date_obtention_diplome')
+                                                    ->label("Date d'obtention du diplôme")
                                                     ->formatStateUsing(fn ($state) => ucfirst($state)),
-                                                TextEntry::make('code_etablissement')
+                                                TextEntry::make('etablissement_etude')
                                                     ->label("Etablissement d'enseignement")
-                                                    ->formatStateUsing(function ($state) {
-                                                        // Retrieve the list of establishments from settings
-                                                        $etablissements = app(IdentificationSettings::class)->code_etablissement;
-
-                                                        // Find the matching establishment name based on the 'code'
-                                                        $matchingEtablissement = collect($etablissements)->firstWhere('code', $state);
-
-                                                        // Return the name (nom) if found, otherwise return the code
-                                                        return $matchingEtablissement ? ucfirst($matchingEtablissement['nom']) : $state;
-                                                    }),
+                                                    ->formatStateUsing(fn ($state) => ucfirst($state)),
                                                 TextEntry::make('diplome_etranger')
                                                     ->label("Votre diplome a t'il été délivré hors de la Guinée ?")
                                                     ->formatStateUsing(function ($state) {
@@ -401,4 +413,11 @@ class MonInscription extends Page
 
             ]);
     }
+    protected function getFooterWidgets(): array
+    {
+        return [
+            ListeAttestations::class,
+        ];
+    }
+
 }

@@ -12,7 +12,11 @@ return new class extends SettingsMigration
         $this->migrator->add('general.mail_from_name', 'nepasrepondre@onpg.com');
         $this->migrator->add('general.mail_from_address', 'Inscription - ONPG');
         $this->migrator->add('general.logo', null);
+        $this->migrator->add('general.taille_logo', null);
+        $this->migrator->add('general.logo_mobile', null);
+        $this->migrator->add('general.taille_logo_mobile', null);
         $this->migrator->add('general.logo_alt', null);
+        $this->migrator->add('general.taille_logo_alt', null);
         $this->migrator->add('general.favicon', null);
     }
 };

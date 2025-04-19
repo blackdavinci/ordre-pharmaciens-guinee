@@ -85,6 +85,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasOne(Inscription::class);
     }
 
+    public function reinscriptions()
+    {
+        return $this->hasMany(Reinscription::class);
+    }
+
     protected static function booted()
     {
         static::saving(function ($user) {

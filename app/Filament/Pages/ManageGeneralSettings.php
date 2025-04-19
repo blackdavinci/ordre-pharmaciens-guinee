@@ -13,6 +13,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Pages\SettingsPage;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ManageGeneralSettings extends SettingsPage
 {
@@ -48,13 +49,17 @@ class ManageGeneralSettings extends SettingsPage
                                     ->label('Téléphone')
                                     ->required(),
                                 FileUpload::make('logo')
-                                    ->preserveFilenames()
+                                    ->getUploadedFileNameForStorageUsing(
+                                        fn (TemporaryUploadedFile $file): string => 'logo.'.$file->getClientOriginalExtension()
+                                    )
                                     ->disk('public')
                                     ->visibility('public')
                                     ->image(),
                                 FileUpload::make('logo_alt')
                                     ->label('Logo alternatif')
-                                    ->preserveFilenames()
+                                    ->getUploadedFileNameForStorageUsing(
+                                        fn (TemporaryUploadedFile $file): string => 'logo_alt.'.$file->getClientOriginalExtension()
+                                    )
                                     ->disk('public')
                                     ->visibility('public')
                                     ->image(),
@@ -63,12 +68,16 @@ class ManageGeneralSettings extends SettingsPage
                                 TextInput::make('logo_alt_size')
                                     ->label('Taille Logo alternatif'),
                                 FileUpload::make('logo_mobile')
-                                    ->preserveFilenames()
+                                    ->getUploadedFileNameForStorageUsing(
+                                        fn (TemporaryUploadedFile $file): string => 'logo_mobile.'.$file->getClientOriginalExtension()
+                                    )
                                     ->disk('public')
                                     ->visibility('public')
                                     ->image(),
                                 FileUpload::make('favicon')
-                                    ->preserveFilenames()
+                                    ->getUploadedFileNameForStorageUsing(
+                                        fn (TemporaryUploadedFile $file): string => 'favicon.'.$file->getClientOriginalExtension()
+                                    )
                                     ->disk('public')
                                     ->visibility('public')
                                     ->image(),

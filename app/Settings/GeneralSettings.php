@@ -14,10 +14,11 @@ class GeneralSettings extends Settings
 
     public ?string $logo = null;
     public ?string $logo_alt = null;
+    public ?string $logo_mobile = null;
+    public ?string $taille_logo = null;
+    public ?string $taille_logo_mobile = null;
+    public ?string $taille_logo_alt = null;
     public ?string $favicon = null;
-
-
-
     public static function group(): string
     {
         return 'general';

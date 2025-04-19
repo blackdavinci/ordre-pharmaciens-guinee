@@ -14,16 +14,16 @@ return new class extends Migration
         Schema::create('reinscriptions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->year('annee');
-            $table->boolean('paiement_effectue')->default(false);
-            $table->string('fichier_justificatif')->nullable(); // preuve activité ou autre doc
-            $table->string('attestation_generee')->nullable(); // chemin du PDF
-            $table->enum('statut', ['en attente', 'validé', 'rejeté'])->default('en attente');
+            $table->foreignId('inscription_id')->constrained()->onDelete('cascade');
+            $table->string('numero_inscription')->unique()->nullable();
+            $table->date('date_reinscription');
+            $table->enum('statut', ['pending', 'approved', 'rejected'])->default('pending');
             $table->text('motif_rejet')->nullable();
-            $table->timestamp('validated_at')->nullable();
+            $table->dateTime('valid_from')->nullable();
+            $table->dateTime('valid_until')->nullable();
             $table->timestamps();
             // Empêche les doublons pour un même user et une même année
-            $table->unique(['user_id', 'annee']);
+            $table->unique(['inscription_id', 'date_reinscription']);
         });
     }
 

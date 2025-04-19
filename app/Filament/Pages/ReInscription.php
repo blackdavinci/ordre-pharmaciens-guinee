@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Inscription;
+use App\Settings\FormulaireSettings;
 use App\Settings\IdentificationSettings;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
@@ -21,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Parfaitementweb\FilamentCountryField\Forms\Components\Country;
+use Snowfire\Beautymail\Beautymail;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 
 class ReInscription extends Page
@@ -39,6 +41,35 @@ class ReInscription extends Page
     public $record;
 
     public ?Inscription $inscription = null; // Ajoutez cette ligne
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        // Vérifie le rôle
+        if (!$user->hasRole('membre')) {
+            return false;
+        }
+
+        // Vérifie la présence des dates nécessaires
+        if (!$user->inscription->valid_until) {
+            return false;
+        }
+
+        // Vérifie la période de réinscription (2 mois avant valid_until)
+        $reinscriptionStart = $user->inscription->valid_until->subMonths(2);
+        $isInReinscriptionPeriod = now()->between(
+            $reinscriptionStart,
+            $user->inscription->valid_until
+        );
+
+        // Vérifie que l'utilisateur ne s'est pas déjà réinscrit cette année
+        $hasNotReinscribedThisYear = $user->reinscription == null;
+
+        return $isInReinscriptionPeriod && $hasNotReinscribedThisYear;
+
+
+    }
 
     public function mount()
     {
@@ -61,6 +92,8 @@ class ReInscription extends Page
 
     }
 
+
+
     public function form(Form $form): Form
     {
         return $form
@@ -77,10 +110,12 @@ class ReInscription extends Page
                                         SpatieMediaLibraryFileUpload::make('photo_identite')
                                             ->collection('photo_identite')
                                             ->label("Photo d'identité")
+                                            ->maxSize(2048)
+                                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Dimensions max : (35 mm x 45 mm, 413 px x 531 px)')
                                             ->avatar()
                                             ->responsiveImages()
                                             ->image()
-                                            ->required(),
+                                            ->required()
                                     ]),
                                 Grid::make()
                                     ->columnSpan(9)
@@ -104,24 +139,32 @@ class ReInscription extends Page
                                         SpatieMediaLibraryFileUpload::make('cin_recto')
                                             ->collection('cin_recto')
                                             ->label('CIN - Recto')
+                                            ->maxSize(2048)
+                                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                             ->visible(fn ($get) => $get('type_piece_identite') === 'cin')
                                             ->required(fn ($get) => $get('type_piece_identite') === 'cin'),
 
                                         SpatieMediaLibraryFileUpload::make('cin_verso')
                                             ->collection('cin_verso')
                                             ->label('CIN - Verso')
+                                            ->maxSize(2048)
+                                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                             ->visible(fn ($get) => $get('type_piece_identite') === 'cin')
                                             ->required(fn ($get) => $get('type_piece_identite') === 'cin'),
 
                                         SpatieMediaLibraryFileUpload::make('passeport_page_infos')
                                             ->collection('passeport_page_infos')
                                             ->label('Passeport - Page d\'information')
+                                            ->maxSize(2048)
+                                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                             ->visible(fn ($get) => $get('type_piece_identite') === 'passeport')
                                             ->required(fn ($get) => $get('type_piece_identite') === 'passeport'),
 
                                         SpatieMediaLibraryFileUpload::make('passeport_premiere_page')
                                             ->collection('passeport_premiere_page')
                                             ->label('Passeport - Première page')
+                                            ->maxSize(2048)
+                                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                             ->visible(fn ($get) => $get('type_piece_identite') === 'passeport')
                                             ->required(fn ($get) => $get('type_piece_identite') === 'passeport'),
 
@@ -162,41 +205,54 @@ class ReInscription extends Page
                                 ])
                                 ->live()
                                 ->required(),
-                            Select::make('annee_obtention_diplome')
-                                ->options(range((int) date('Y'), 1900, -1))  // Génère les années de l'année actuelle à 1900 de manière décroissante
-                                ->required()  // Le champ est requis
-                                ->label("Année d'obtention du diplôme"),  // Le label du champ
-                            Select::make('code_etablissement')
-                                ->options(collect(app(IdentificationSettings::class)->code_etablissement)->pluck('nom', 'code')->toArray())  // Génère les années de l'année actuelle à 1900 de manière décroissante
+                            DatePicker::make('date_obtention_diplome')
+                                ->label("Date d'obtention du diplôme")
+                                ->required(),
+                            Select::make('etablissement_etude')
+                                ->options(collect(app(FormulaireSettings::class)->liste_etablissement)->pluck('nom','nom')->toArray())  // Génère les années de l'année actuelle à 1900 de manière décroissante
                                 ->required()  // Le champ est requis
                                 ->label("Etablissement d'obtention du diplôme"),  // Le label du champ
                             SpatieMediaLibraryFileUpload::make('extrait_naissance')
                                 ->label('Extrait de naissance')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->collection('extrait_naissance')
                                 ->required(),
 
                             SpatieMediaLibraryFileUpload::make('certificat_nationalite')
                                 ->collection('certificat_nationalite')
                                 ->label("Certificat de nationalité")
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->visible(fn ($get) => $get('citoyen_guineen') == true)
                                 ->required(),
 
                             SpatieMediaLibraryFileUpload::make('casier_judiciaire')
                                 ->collection('casier_judiciaire')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->required(),
                             SpatieMediaLibraryFileUpload::make('attestation_moralite')
                                 ->collection('attestation_moralite')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->required(),
                             SpatieMediaLibraryFileUpload::make('lettre_manuscrite')
                                 ->label('Lettre manuscrite au Président')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->collection('lettre_manuscrite')
                                 ->required(),
 
                             SpatieMediaLibraryFileUpload::make('diplome')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->collection('diplome')
                                 ->required(),
                             SpatieMediaLibraryFileUpload::make('certificat_fin_cycle')
                                 ->label('Certificat de fin de cycle')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->collection('certificat_fin_cycle')
                                 ->required(),
 
@@ -204,6 +260,8 @@ class ReInscription extends Page
                             SpatieMediaLibraryFileUpload::make('equivalence_diplome')
                                 ->collection('equivalence_diplome')
                                 ->label("Veuillez fournir l'attestation d'équivalence")
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->visible(fn (Get $get) => $get('diplome_etranger') == true)
                                 ->required(),
 
@@ -213,18 +271,11 @@ class ReInscription extends Page
                     Wizard\Step::make('Situation professionnelle')
                         ->columns(2)
                         ->schema([
-                            Select::make('profil')->options([
-                                'pharmacien assistant' => 'Pharmacien assistant',
-                                'pharmacien biologiste' => 'Pharmacien biologiste',
-                                'pharmacien délégué médical' => 'Pharmacien délégué médical',
-                                'pharmacien grossiste' => 'Pharmacien grossiste',
-                                'pharmacien inspecteur de santé' => 'Pharmacien inspecteur de santé',
-                                'pharmacien d\'industrie' => 'Pharmacien d\'industrie',
-                                'pharmacien sans affectation' => 'Pharmacien sans affectation',
-                                'pharmacien titulaire d\'officine' => 'Pharmacien titulaire d\'officine',
-                            ])->required(),
+                            Select::make('profil')
+                                ->options(collect(app(FormulaireSettings::class)->liste_profil_professionnel)->pluck('nom','nom')->toArray())
+                                ->required(),
                             Select::make('section')
-                                ->options(['section a' => 'Section A', 'section b' => 'Section B'])
+                                ->options(collect(app(FormulaireSettings::class)->liste_section)->pluck('nom','nom')->toArray())
                                 ->required(),
                             Select::make('salarie')
                                 ->label('Etes-vous salarié ?')
@@ -239,6 +290,8 @@ class ReInscription extends Page
                             SpatieMediaLibraryFileUpload::make('attestation_emploi')
                                 ->collection('attestation_emploi')
                                 ->label("Attestation d'emploi")
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->columnSpanFull()
                                 ->visible(fn ($get) => $get('salarie') == true)
                                 ->required(),
@@ -319,9 +372,35 @@ class ReInscription extends Page
 
                 DB::commit();
 
+
+                $reinscription = \App\Models\Reinscription::create([
+                    'user_id' => auth()->user()->id,
+                    'inscription_id' => $this->inscription->id,
+                    'date_reinscription' => now(),
+                    'statut' => 'pending',
+                ]);
+
                 return redirect()->route('payment.initiate', [
                     'token' => $token,
                 ]);
+
+
+                // 6. Envoyer l'email avec Beautymail
+                $beautymail = app()->make(BeautyMail::class);
+                $beautymail->send('emails.reinscription-submit', [
+                    'inscription' => $inscription,
+                    'date' => now()->format('d/m/Y'),
+                ], function ($message) use ($inscription, $media) {
+                    $message
+                        ->from('ousmaneciss1@gmail.com')
+                        ->to($inscription->email, $inscription->prenom . ' ' . $inscription->nom)
+                        ->subject('Votre réinscription a été approuvée - ONPG')
+                        // Attach the file using the file path from Spatie Media Library
+                        ->attach($media->getPath(), [
+                            'as' => 'attestation.pdf',
+                            'mime' => 'application/pdf',
+                        ]);
+                });
 
                 // Notification de succès
                 Notification::make()

@@ -10,6 +10,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Snowfire\Beautymail\Beautymail;
 
 class ViewUser extends ViewRecord
 {
@@ -96,7 +97,14 @@ class ViewUser extends ViewRecord
                     ]);
                     $user->save();
                     // Send email notification with the login credentials
-                    $this->record->notify(new SendResetPassword($user, $password));
+                    // Envoi des informations de compte utilisateur
+                    $beautymail = app()->make(Beautymail::class);
+                    $beautymail->send('emails.password-reset', ['user' => $user, 'password' => $password], function ($message) use ($user) {
+                        $message
+                            ->from('ousmaneciss1@gmail.com')
+                            ->to($user->email, $user->prenom.' '.$user->nom)
+                            ->subject('Votre mot de passe a été réinitialisé - ONPG');
+                    });
 
                     Notification::make()
                         ->title('Mot de passe réinitialisé avec succès')

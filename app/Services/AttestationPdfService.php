@@ -8,6 +8,7 @@ use chillerlan\QRCode\QROptions;
 
 class AttestationPdfService
 {
+
     public function generate($data)
     {
         // Créer un nouveau PDF en format paysage (L)
@@ -51,7 +52,7 @@ class AttestationPdfService
         // Numéro d'enregistrement
         $pdf->SetXY(80, 98);
         $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(140, 10, 'sous le N° ' . $data['rngpsNumero'], 0, 1, 'C');
+        $pdf->Cell(140, 10, "sous le N° d'ordre" . $data['ordreNumero'], 0, 1, 'C');
 
         // Réinitialiser la police en normal (non gras) pour la mention
         $pdf->SetFont('helvetica', '', 11); // Notez le '' qui indique un style normal
@@ -86,7 +87,7 @@ class AttestationPdfService
         // Générer le QR code
         $this->generateCustomQRCode(
             $pdf,
-            'http://pharmaciens.conakryconnect.com/verify/'.$data['rngpsNumero'],
+            $data['verifyAttestation_url'],
             140,   // Position X
             160,   // Position Y
             20,    // Taille globale (mm)
@@ -145,7 +146,6 @@ class AttestationPdfService
         }
 
     }
-
 
 }
 

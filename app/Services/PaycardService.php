@@ -61,4 +61,68 @@ class PaycardService
         }
     }
 
+    public function getPaymentTransactionDate(string $reference): array
+    {
+        try {
+            $response = Http::get($this->baseUrl . "/epay/{$this->apiKey}/{$reference}/transaction_date");
+            $data = $response->json();
+
+            if ($data['code'] !== 0) {
+                throw new PaycardException($data['error_message'] ?? 'Unknown error');
+            }
+
+            return $data;
+        } catch (\Exception $e) {
+            throw new PaycardException('API call failed: ' . $e->getMessage());
+        }
+    }
+
+    public function getPaymentDescription(string $reference): array
+    {
+        try {
+            $response = Http::get($this->baseUrl . "/epay/{$this->apiKey}/{$reference}/payment_description");
+            $data = $response->json();
+
+            if ($data['code'] !== 0) {
+                throw new PaycardException($data['error_message'] ?? 'Unknown error');
+            }
+
+            return $data;
+        } catch (\Exception $e) {
+            throw new PaycardException('API call failed: ' . $e->getMessage());
+        }
+    }
+
+    public function getPaymentMethod(string $reference): array
+    {
+        try {
+            $response = Http::get($this->baseUrl . "/epay/{$this->apiKey}/{$reference}/payment_method");
+            $data = $response->json();
+
+            if ($data['code'] !== 0) {
+                throw new PaycardException($data['error_message'] ?? 'Unknown error');
+            }
+
+            return $data;
+        } catch (\Exception $e) {
+            throw new PaycardException('API call failed: ' . $e->getMessage());
+        }
+    }
+
+    public function getPaymentMerchantName(string $reference): array
+    {
+        try {
+            $response = Http::get($this->baseUrl . "/epay/{$this->apiKey}/{$reference}/merchant_name");
+            $data = $response->json();
+
+            if ($data['code'] !== 0) {
+                throw new PaycardException($data['error_message'] ?? 'Unknown error');
+            }
+
+            return $data;
+        } catch (\Exception $e) {
+            throw new PaycardException('API call failed: ' . $e->getMessage());
+        }
+    }
+
 }

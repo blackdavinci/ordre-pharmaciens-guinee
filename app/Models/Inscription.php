@@ -17,10 +17,15 @@ class Inscription extends Model implements HasMedia
      * @var list<string>
      */
     protected $dates = ['valid_from', 'valid_until'];
+
+    protected $casts = [
+        'valid_until' => 'datetime',
+        'valid_from' => 'datetime'// This will automatically convert the 'valid_until' field to a Carbon instance
+    ];
     protected $fillable = [
         'numero_inscription',
         'numero_rngps',
-        'numero_medecin',
+        'numero_ordre',
         'prenom',
         'nom',
         'genre',
@@ -37,15 +42,14 @@ class Inscription extends Model implements HasMedia
         'type_piece_identite',
         'profil',
         'section',
-        'annee_obtention_diplome',
+        'date_obtention_diplome',
         'numero_diplome',
-        'code_etablissement',
+        'etablissement_etude',
         'diplome_etranger',
         'equivalence_diplome',
         'salarie',
         'statut',
         'motif_rejet',
-        'frais_paiement',
         'valid_from',
         'valid_until',
         'user_id',
@@ -58,6 +62,11 @@ class Inscription extends Model implements HasMedia
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function reinscriptions()
+    {
+        return $this->hasMany(Reinscription::class);
     }
 
     // Relation: Une inscription peut avoir plusieurs paiements
@@ -86,10 +95,12 @@ class Inscription extends Model implements HasMedia
         $this->addMediaCollection('fiche_inscription');
         $this->addMediaCollection('equivalence_diplome');
         $this->addMediaCollection('attestations');
+        $this->addMediaCollection('receipt');
     }
 
     // Méthode pour générer automatiquement le numéro rngps
-    public function generateRngps()
+
+    public function generateRngpsNumber()
     {
         $identification = app(IdentificationSettings::class); // Récupérer les paramètres
 
@@ -97,21 +108,29 @@ class Inscription extends Model implements HasMedia
         if (is_null($identification->dernier_identifiant)) {
             // Si c'est le premier pharmacien, on utilise numero_debut
             $id = $identification->debut_identifiant;
+            $compteur = 1; // Commence à 00001
         } else {
             // Sinon, on incrémente le dernier numéro généré
-            $id = $identification->dernier_identifiant + 1;
+            $id = $identification->dernier_identifiant;
+            $compteur = ($id % 100000) + 1; // On récupère les 5 derniers chiffres pour incrémenter le compteur
+
+            if ($compteur > 99999) {
+                // Si le compteur atteint 99999, on incrémente l'année et recommence le compteur
+                $id = ($id + 100000) - ($id % 100000); // On passe au chiffre suivant
+                $compteur = 1; // On recommence à 00001
+            }
         }
 
-        // S'assurer que code_etablissement existe
-        $code_etablissement = $this->code_etablissement ?? 'DEFAULT';
         $annee = date('Y');
 
         // Mettre à jour le dernier numéro généré dans les paramètres
-        $identification->dernier_identifiant = $id;
+        $identification->dernier_identifiant = $id + $compteur;
         $identification->save();
 
-        return "{$id}/{$code_etablissement}/{$annee}";
+        // Retourner le code RNGPS formaté
+        return sprintf("%02d%05d%d", $id, $compteur, $annee); // Exemple: 17140022025
     }
+
 
     public function scopeActive($query)
     {
@@ -132,6 +151,29 @@ class Inscription extends Model implements HasMedia
             'valid_from' => now(),
             'valid_until' => now()->addYear() // 1 an de validité
         ]);
+    }
+
+    /**
+     * Generate a unique inscription number in the format: 00{MM}{ID}{random(5)}{YY}
+     *
+     * @return string
+     */
+    public function generateInscriptionNumber(): string
+    {
+        // Get current month (MM) and year (YY)
+        $month = now()->format('m');
+        $year = now()->format('y');
+
+        // Get the ID (will be 0 if the model isn't saved yet)
+        $id = $this->id ?? 1;
+
+        // Generate 5 random digits
+        $random = str_pad(rand(0, 99999), 5, '0', STR_PAD_LEFT);
+
+        // Combine all parts to create the inscription number
+        $inscriptionNumber = "00{$month}{$id}{$random}{$year}";
+
+        return $inscriptionNumber;
     }
 
 

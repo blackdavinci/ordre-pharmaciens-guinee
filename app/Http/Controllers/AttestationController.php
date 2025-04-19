@@ -30,7 +30,7 @@ class AttestationController extends Controller
         $data = [
             'presidentNom' => app(DocumentSettings::class)->nom_president,
             'rngpsNumero' => $inscription->numero_rngps,
-            'medecinNumero' => $inscription->numero_medecin,
+            'ordreNumero' => $inscription->numero_ordre,
             'validiteAttesation' => $inscription->expiration_at,
             'pharmacienNom' => $inscription->prenom.' '.$inscription->nom,
             'pharmacienProfil' => ucfirst($inscription->profil),
@@ -48,21 +48,12 @@ class AttestationController extends Controller
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="attestation.pdf"'
         ]);
+    }
 
-        // Pour télécharger directement le PDF
-        return new Response($pdf, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="attestation.pdf"',
-        ]);
+    public function verify($numero)
+    {
+        // Vous pouvez adapter cela pour récupérer les données depuis un formulaire ou une base de données
+        $inscription = Inscription::where('numero_rngps', $rngps)->firstOrFail();
 
-
-
-        // OU pour afficher le PDF dans le navigateur
-        /*
-        return new Response($pdf, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="attestation.pdf"',
-        ]);
-        */
     }
 }

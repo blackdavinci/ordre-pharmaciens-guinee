@@ -5,7 +5,7 @@
     @include('beautymail::templates.minty.contentStart')
     <tr>
         <td class="title" style="color: #2ab27b; font-size: 18px; font-weight: bold;">
-            Félicitations, {{ $inscription->prenom }} !
+            Félicitations, {{ $inscription->prenom.' '.$inscription->nom }} !
         </td>
     </tr>
     <tr>
@@ -29,18 +29,30 @@
     </tr>
     <tr>
         <td class="paragraph">
-            <table style="width: 100%;">
+            <table style="width: 100%; background: #f5f5f5; border-radius: 5px;">
                 <tr>
-                    <td style="width: 120px;"><strong>Code d'enregistrement :</strong></td>
-                    <td>{{ $inscription->code_registre }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Nom complet :</strong></td>
+                    <td style="padding: 8px;"><strong>Nom complet :</strong></td>
                     <td>{{ $inscription->prenom }} {{ $inscription->nom }}</td>
                 </tr>
                 <tr>
-                    <td><strong>Date d'approbation :</strong></td>
-                    <td>{{ now()->format('d/m/Y') }}</td>
+                    <td style="padding: 8px;"><strong>Profil :</strong></td>
+                    <td>{{ $inscription->profil }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;"><strong>Numéro RNGPS :</strong></td>
+                    <td>{{ $inscription->numero_rngps }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;"><strong>Numéro Ordre :</strong></td>
+                    <td>{{ $inscription->numero_ordre }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;"><strong>Date d'approbation :</strong></td>
+                    <td>{{ $reinscription->valid_from->format('d/m/Y') }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;"><strong>Inscription valide jusqu'au :</strong></td>
+                    <td>{{ $reinscription->valid_until->format('d/m/Y') }}</td>
                 </tr>
             </table>
         </td>

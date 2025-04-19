@@ -36,14 +36,27 @@ class ManagerDocumentSettings extends SettingsPage
                                     ->label('Nom du président')
                                     ->columnSpanFull()
                                     ->required(),
+                                TextInput::make('adresse')
+                                    ->label('Adresse')
+                                    ->columnSpanFull()
+                                    ->required(),
+                                TextInput::make('mention_fiscale')
+                                    ->label('Mention fiscale')
+                                    ->columnSpanFull()
+                                    ->required(),
                                 FileUpload::make('signature_president')
-                                    ->preserveFilenames()
+                                    ->disk('public')
+                                    ->columnSpanFull()
+                                    ->visibility('public')
+                                    ->image()
+                                    ->required(),
+                                FileUpload::make('attestation_background')
+                                    ->label('Image de fond attesation')
                                     ->disk('public')
                                     ->visibility('public')
                                     ->image(),
-                                FileUpload::make('attestation_background')
-                                    ->label('Image de fond attesation')
-                                    ->preserveFilenames()
+                                FileUpload::make('receipt_background')
+                                    ->label('Image de fond reçu')
                                     ->disk('public')
                                     ->visibility('public')
                                     ->image(),

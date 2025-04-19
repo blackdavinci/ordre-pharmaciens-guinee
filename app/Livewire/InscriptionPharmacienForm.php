@@ -4,7 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Inscription;
 use App\Models\Paiement;
-use App\Settings\IdentificationSettings;
+use App\Settings\FormulaireSettings;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
@@ -33,19 +33,55 @@ class InscriptionPharmacienForm extends Component implements HasForms
 
     public ?array $data = [];
 
-    public function mount(Inscription $inscription): void
+    public function mount($token = null): void
     {
-        $this->inscription = $inscription;
+        // Cas 1: Token fourni - charger l'inscription existante
+        if ($token) {
+            $existingInscription = Inscription::where('inscription_token', $token)->first();
 
+            if ($existingInscription) {
+                $this->inscription = $existingInscription;
+                $this->form->fill($existingInscription->toArray());
+
+                session()->put('id',$existingInscription->id);
+
+                Notification::make()
+                    ->title('Inscription récupérée')
+                    ->body('Nous avons récupéré votre inscription. Vous pouvez continuer votre processus d\'inscription.')
+                    ->info()
+                    ->send();
+
+                return;
+            }
+        }
+
+        // Cas 2: Email en session temporaire - initialiser avec cet email
+        if (session()->has('temp_email')) {
+            $this->inscription = new Inscription();
+            $this->inscription->email = session()->pull('temp_email'); // Récupère et supprime
+            $this->form->fill(['email' => $this->inscription->email]);
+            return;
+        }
+
+        // Cas 3: Email en session flash (from "with")
+        if (session()->has('email')) {
+            $this->inscription = new Inscription();
+            $this->inscription->email = session('email');
+            $this->form->fill(['email' => $this->inscription->email]);
+            return;
+        }
+
+        // Cas 4: Nouvelle inscription vide
+        $this->inscription = new Inscription();
+
+        // Chargement des données sauvegardées en session si disponibles
         if ($savedData = session()->get('saved_data')) {
-
             $this->form->fill($savedData);
-
         } else {
             $formData = $this->inscription->toArray();
-
             $this->form->fill($formData);
         }
+
     }
 
 
@@ -67,10 +103,12 @@ class InscriptionPharmacienForm extends Component implements HasForms
                                         SpatieMediaLibraryFileUpload::make('photo_identite')
                                             ->collection('photo_identite')
                                             ->label("Photo d'identité")
+                                            ->maxSize(2048)
+                                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Dimensions max : (35 mm x 45 mm, 413 px x 531 px)')
                                             ->avatar()
                                             ->responsiveImages()
                                             ->image()
-                                            ->required(),
+                                            ->required()
                                     ]),
                                 Grid::make()
                                     ->columnSpan(9)
@@ -94,24 +132,32 @@ class InscriptionPharmacienForm extends Component implements HasForms
                                         SpatieMediaLibraryFileUpload::make('cin_recto')
                                             ->collection('cin_recto')
                                             ->label('CIN - Recto')
+                                            ->maxSize(2048)
+                                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                             ->visible(fn ($get) => $get('type_piece_identite') === 'cin')
                                             ->required(fn ($get) => $get('type_piece_identite') === 'cin'),
 
                                         SpatieMediaLibraryFileUpload::make('cin_verso')
                                             ->collection('cin_verso')
                                             ->label('CIN - Verso')
+                                            ->maxSize(2048)
+                                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                             ->visible(fn ($get) => $get('type_piece_identite') === 'cin')
                                             ->required(fn ($get) => $get('type_piece_identite') === 'cin'),
 
                                         SpatieMediaLibraryFileUpload::make('passeport_page_infos')
                                             ->collection('passeport_page_infos')
                                             ->label('Passeport - Page d\'information')
+                                            ->maxSize(2048)
+                                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                             ->visible(fn ($get) => $get('type_piece_identite') === 'passeport')
                                             ->required(fn ($get) => $get('type_piece_identite') === 'passeport'),
 
                                         SpatieMediaLibraryFileUpload::make('passeport_premiere_page')
                                             ->collection('passeport_premiere_page')
                                             ->label('Passeport - Première page')
+                                            ->maxSize(2048)
+                                            ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                             ->visible(fn ($get) => $get('type_piece_identite') === 'passeport')
                                             ->required(fn ($get) => $get('type_piece_identite') === 'passeport'),
 
@@ -152,41 +198,54 @@ class InscriptionPharmacienForm extends Component implements HasForms
                                 ])
                                 ->live()
                                 ->required(),
-                            Select::make('annee_obtention_diplome')
-                                ->options(range((int) date('Y'), 1900, -1))  // Génère les années de l'année actuelle à 1900 de manière décroissante
-                                ->required()  // Le champ est requis
-                                ->label("Année d'obtention du diplôme"),  // Le label du champ
-                            Select::make('code_etablissement')
-                                ->options(collect(app(IdentificationSettings::class)->code_etablissement)->pluck('nom', 'code')->toArray())  // Génère les années de l'année actuelle à 1900 de manière décroissante
+                            DatePicker::make('date_obtention_diplome')
+                                ->label("Date d'obtention du diplôme")
+                                ->required(),
+                            Select::make('etablissement_etude')
+                                ->options(collect(app(FormulaireSettings::class)->liste_etablissement)->pluck('nom','nom')->toArray())  // Génère les années de l'année actuelle à 1900 de manière décroissante
                                 ->required()  // Le champ est requis
                                 ->label("Etablissement d'obtention du diplôme"),  // Le label du champ
                             SpatieMediaLibraryFileUpload::make('extrait_naissance')
                                 ->label('Extrait de naissance')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->collection('extrait_naissance')
                                 ->required(),
 
                             SpatieMediaLibraryFileUpload::make('certificat_nationalite')
                                 ->collection('certificat_nationalite')
                                 ->label("Certificat de nationalité")
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->visible(fn ($get) => $get('citoyen_guineen') == true)
                                 ->required(),
 
                             SpatieMediaLibraryFileUpload::make('casier_judiciaire')
                                 ->collection('casier_judiciaire')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->required(),
                             SpatieMediaLibraryFileUpload::make('attestation_moralite')
                                 ->collection('attestation_moralite')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->required(),
                             SpatieMediaLibraryFileUpload::make('lettre_manuscrite')
                                 ->label('Lettre manuscrite au Président')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->collection('lettre_manuscrite')
                                 ->required(),
 
                             SpatieMediaLibraryFileUpload::make('diplome')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->collection('diplome')
                                 ->required(),
                             SpatieMediaLibraryFileUpload::make('certificat_fin_cycle')
                                 ->label('Certificat de fin de cycle')
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->collection('certificat_fin_cycle')
                                 ->required(),
 
@@ -194,6 +253,8 @@ class InscriptionPharmacienForm extends Component implements HasForms
                             SpatieMediaLibraryFileUpload::make('equivalence_diplome')
                                 ->collection('equivalence_diplome')
                                 ->label("Veuillez fournir l'attestation d'équivalence")
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->visible(fn (Get $get) => $get('diplome_etranger') == true)
                                 ->required(),
 
@@ -203,18 +264,11 @@ class InscriptionPharmacienForm extends Component implements HasForms
                     Wizard\Step::make('Situation professionnelle')
                         ->columns(2)
                         ->schema([
-                            Select::make('profil')->options([
-                                'pharmacien assistant' => 'Pharmacien assistant',
-                                'pharmacien biologiste' => 'Pharmacien biologiste',
-                                'pharmacien délégué médical' => 'Pharmacien délégué médical',
-                                'pharmacien grossiste' => 'Pharmacien grossiste',
-                                'pharmacien inspecteur de santé' => 'Pharmacien inspecteur de santé',
-                                'pharmacien d\'industrie' => 'Pharmacien d\'industrie',
-                                'pharmacien sans affectation' => 'Pharmacien sans affectation',
-                                'pharmacien titulaire d\'officine' => 'Pharmacien titulaire d\'officine',
-                            ])->required(),
+                            Select::make('profil')
+                                ->options(collect(app(FormulaireSettings::class)->liste_profil_professionnel)->pluck('nom','nom')->toArray())
+                                ->required(),
                             Select::make('section')
-                                ->options(['section a' => 'Section A', 'section b' => 'Section B'])
+                                ->options(collect(app(FormulaireSettings::class)->liste_section)->pluck('nom','nom')->toArray())
                                 ->required(),
                             Select::make('salarie')
                                 ->label('Etes-vous salarié ?')
@@ -229,6 +283,8 @@ class InscriptionPharmacienForm extends Component implements HasForms
                             SpatieMediaLibraryFileUpload::make('attestation_emploi')
                                 ->collection('attestation_emploi')
                                 ->label("Attestation d'emploi")
+                                ->maxSize(2048)
+                                ->hintIcon('heroicon-m-question-mark-circle', tooltip: 'Taille max : 2 Mo')
                                 ->columnSpanFull()
                                 ->visible(fn ($get) => $get('salarie') == true)
                                 ->required(),
@@ -279,8 +335,6 @@ class InscriptionPharmacienForm extends Component implements HasForms
         session()->flash('message', 'Données enregistrées localement');
     }
 
-
-
     public function create()
     {
         $data = $this->form->getState();
@@ -291,46 +345,81 @@ class InscriptionPharmacienForm extends Component implements HasForms
 
         try {
 
-            // Récupérer le dernier numéro d'inscription de l'année en cours
-            $lastInscription = Inscription::whereYear('created_at', date('Y'))
-                ->orderBy('created_at', 'desc')
-                ->first();
+            if(session()->has('id')){
 
-            // Définir le préfixe de l'inscription avec l'année en cours
-            $prefix = 'INS-' . date('Y') . '-';
+                $inscription = Inscription::findOrFail(session('id'));
 
-            // Si aucune inscription n'existe pour l'année en cours, commencer avec 000001
-            $lastNumber = $lastInscription ? (int) substr($lastInscription->numero_inscription, 9) : 0;
-            $newNumber = str_pad($lastNumber + 1, 6, '0', STR_PAD_LEFT); // Ajouter des zéros pour faire 6 chiffres
+                // Pour les champs uniques, on vérifie s'ils ont changé avant de mettre à jour
+                $uniqueFields = ['email', 'telephone_mobile']; // Ajoutez ici tous vos champs uniques
 
-            // Générer le numéro d'inscription
-            $numeroInscription = $prefix . $newNumber;
+                // Préparation des données à mettre à jour
+                $updateData = $data;
 
-            $inscription = Inscription::create(array_merge($data, [
-                'inscription_token' => $token,
-                'numero_inscription' => $numeroInscription,
-                'statut' => 'pending',
-                'inscription_draft_expiration_at' => now()->addHours(48),
-            ]));
+                // Pour chaque champ unique, vérifier s'il a changé
+                foreach ($uniqueFields as $field) {
+                    if (isset($data[$field]) && $data[$field] == $inscription->$field) {
+                        // Si le champ n'a pas changé, on le retire des données à mettre à jour
+                        // pour éviter les erreurs de contrainte d'unicité
+                        unset($updateData[$field]);
+                    }
+                }
 
-            foreach ($rawData as $field => $files) {
-                if (is_array($files)) {
-                    foreach ($files as $file) {
-                        if ($file instanceof TemporaryUploadedFile) {
-                            $inscription->addMedia($file->getRealPath())
-                                ->toMediaCollection($field);
+                // Mettre à jour l'inscription avec les données modifiées
+                $inscription->update($updateData);
+
+                // Traitement des fichiers multimédias
+                foreach ($rawData as $field => $files) {
+                    if (is_array($files)) {
+                        foreach ($files as $file) {
+                            if ($file instanceof TemporaryUploadedFile) {
+                                // Supprimer les anciens médias de cette collection si nécessaire
+                                // (optionnel, selon votre logique métier)
+                                 $inscription->clearMediaCollection($field);
+
+                                // Ajouter le nouveau média
+                                $inscription->addMedia($file->getRealPath())
+                                    ->toMediaCollection($field);
+                            }
                         }
                     }
                 }
+
+
+                DB::commit();
+
+                session()->forget('saved_data');
+
+                return redirect()->route('payment.initiate', [
+                    'token' => $inscription->inscription_token,
+                ]);
+
+            }else{
+                $inscription = Inscription::create(array_merge($data, [
+                    'inscription_token' => $token,
+                    'numero_inscription' => $this->generateInscriptionNumber(),
+                    'statut' => 'pending',
+                    'inscription_draft_expiration_at' => now()->addHours(48),
+                ]));
+
+                foreach ($rawData as $field => $files) {
+                    if (is_array($files)) {
+                        foreach ($files as $file) {
+                            if ($file instanceof TemporaryUploadedFile) {
+                                $inscription->addMedia($file->getRealPath())
+                                    ->toMediaCollection($field);
+                            }
+                        }
+                    }
+                }
+
+                DB::commit();
+
+                session()->forget('saved_data');
+
+                return redirect()->route('payment.initiate', [
+                    'token' => $token,
+                ]);
             }
-
-            DB::commit();
-
-            session()->forget('saved_data');
-
-            return redirect()->route('payment.initiate', [
-                'token' => $token,
-            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -344,7 +433,6 @@ class InscriptionPharmacienForm extends Component implements HasForms
 
         return null;
     }
-
 
     public function render()
     {

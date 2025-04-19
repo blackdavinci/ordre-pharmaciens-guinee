@@ -13,7 +13,7 @@
     </tr>
     <tr>
         <td class="paragraph">
-            Bonjour {{ $user->name }},
+            Bonjour {{ $user->prenom.' '.$user->nom }},
         </td>
     </tr>
     <tr>
@@ -21,7 +21,7 @@
     </tr>
     <tr>
         <td class="paragraph">
-            Votre compte a été créé avec succès sur notre plateforme. Voici vos informations de connexion :
+            Votre compte a été créé avec succès sur notre plateforme {{app(\App\Settings\GeneralSettings::class)->site_name}}. Voici vos informations de connexion :
         </td>
     </tr>
     <tr>
@@ -29,18 +29,14 @@
     </tr>
     <tr>
         <td>
-            <table style="width: 100%; background: #f5f5f5; padding: 15px; border-radius: 5px;">
+            <table style="width: 100%; background: #f5f5f5; border-radius: 5px;">
                 <tr>
-                    <td style="width: 120px; font-weight: bold;">Identifiant :</td>
+                    <td style="width: 120px; font-weight: bold; padding: 8px;">Identifiant :</td>
                     <td>{{ $user->email }}</td>
                 </tr>
                 <tr>
-                    <td style="font-weight: bold;">Mot de passe :</td>
+                    <td style="font-weight: bold; padding: 8px;">Mot de passe :</td>
                     <td>{{ $password }}</td>
-                </tr>
-                <tr>
-                    <td style="font-weight: bold;">Profil :</td>
-                    <td>Membre</td>
                 </tr>
             </table>
         </td>

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\InscriptionResource\Pages;
 use App\Filament\Resources\InscriptionResource;
 use App\Models\Inscription;
 use Filament\Actions;
+use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\View;
 use Filament\Notifications\Notification;
@@ -40,6 +41,20 @@ class ViewInscription extends ViewRecord
                 ->disabled()
                 ->icon('heroicon-o-x-circle')
                 ->visible(fn ($record) => $record->statut == 'rejected'),
+
+            Actions\Action::make('updateOrdreNumero')
+                ->label("Mise à jour numéro de l'ordre")
+                ->icon('heroicon-o-arrow-path')
+                ->form([
+                    TextInput::make('numero_ordre')
+                        ->label("Numéro d'ordre")
+                        ->required(),
+                ])
+                ->action(function (array $data, Inscription $record): void {
+                    $record->update($data);
+                    $record->save();
+                })
+                ->visible(fn ($record) => $record->statut == 'approved'),
 
             // Inscription Actions
             Actions\Action::make('approved')

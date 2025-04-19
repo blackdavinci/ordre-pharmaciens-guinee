@@ -51,6 +51,7 @@ class InscriptionResource extends Resource
 {
     protected static ?string $model = Inscription::class;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $modelLabel = "Inscriptions";
 
     public static function form(Form $form): Form
     {
@@ -91,8 +92,9 @@ class InscriptionResource extends Resource
                                                     ->label('Numéro RNGPS')
                                                     ->badge()
                                                     ->formatStateUsing(fn ($state) => ucfirst($state)),
-                                                TextEntry::make('numero_medecin')
-                                                    ->label('Numéro Médécin')
+                                                TextEntry::make('numero_ordre')
+                                                    ->label('Numéro Ordre')
+                                                    ->badge()
                                                     ->formatStateUsing(fn ($state) => ucfirst($state)),
                                                 TextEntry::make('prenom')
                                                     ->label('Prénom')
@@ -165,21 +167,16 @@ class InscriptionResource extends Resource
                                         Grid::make()
                                             ->columnSpan(12)
                                             ->schema([
-                                                TextEntry::make('annee_obtention_diplome')
-                                                    ->label("Année d'obtention du diplôme")
-                                                    ->formatStateUsing(fn ($state) => ucfirst($state)),
-                                                TextEntry::make('code_etablissement')
-                                                    ->label("Etablissement d'enseignement")
+                                                TextEntry::make('date_obtention_diplome')
+                                                    ->label("Date d'obtention du diplôme")
                                                     ->formatStateUsing(function ($state) {
-                                                        // Retrieve the list of establishments from settings
-                                                        $etablissements = app(IdentificationSettings::class)->code_etablissement;
-
-                                                        // Find the matching establishment name based on the 'code'
-                                                        $matchingEtablissement = collect($etablissements)->firstWhere('code', $state);
-
-                                                        // Return the name (nom) if found, otherwise return the code
-                                                        return $matchingEtablissement ? ucfirst($matchingEtablissement['nom']) : $state;
+                                                        // Format the date in French format
+                                                        $date = Carbon::parse($state);
+                                                        return $date->isoFormat('D MMMM YYYY');  // Example: 25 janvier 2023
                                                     }),
+                                                TextEntry::make('etablissement_etude')
+                                                    ->label("Etablissement d'enseignement")
+                                                    ->formatStateUsing(fn ($state) => ucfirst($state)),
                                                 TextEntry::make('diplome_etranger')
                                                     ->label("Votre diplome a t'il été délivré hors de la Guinée ?")
                                                     ->formatStateUsing(function ($state) {
@@ -470,7 +467,7 @@ class InscriptionResource extends Resource
     {
         DB::transaction(function () use ($inscription) {
             // Generate unique registration code
-            $rngps = $inscription->generateRngps();
+            $rngps = $inscription->generateRngpsNumber();
 
             // Generate random password
             $password = Str::random(12);
@@ -506,18 +503,22 @@ class InscriptionResource extends Resource
             $attestationService = app()->make(AttestationPdfService::class);
 
             $signature_president = public_path('storage/'.app(DocumentSettings::class)->signature_president);
-            $attestation_background_url = public_path('storage/'.app(DocumentSettings::class)->attestation_background) ;
+            $attestation_background_url = public_path('storage/'.app(DocumentSettings::class)->attestation_background);
+            $media_uuid = Str::uuid()->toString();
+            $filename = 'attestation_' . $inscription->id . '_' . Str::random(8) . '.pdf';
 
             $data = [
                 'presidentNom' => app(DocumentSettings::class)->nom_president,
                 'rngpsNumero' => $inscription->numero_rngps,
-                'medecinNumero' => $inscription->numero_medecin,
+                'ordreNumero' => $inscription->numero_ordre,
                 'validiteAttesation' => $inscription->valid_until,
                 'pharmacienNom' => $inscription->prenom.' '.$inscription->nom,
                 'pharmacienProfil' => ucfirst($inscription->profil),
                 'dateOfValidation' => $inscription->valid_from,
                 'signatureAttestation' => $signature_president,
                 'backgroundAttestation' => $attestation_background_url,
+                'verifyAttestation_url' => route('attestation.verify', $media_uuid),
+                'fileName' => $filename,
             ];
 
             $pdfContent = $attestationService->generate($data);
@@ -530,9 +531,14 @@ class InscriptionResource extends Resource
             ->usingFileName($filename)  // Use the generated filename
             ->withCustomProperties([
                 'generated_date' => now()->format('Y-m-d H:i:s'),
+                'document_type' => 'attestation',
+                'readable_name' => 'Attestation '.date('Y'),
+                'reference_number' => $data['rngpsNumero'],
+                'valid_until' => $data['validiteAttesation'],
+                'uuid' => $media_uuid,
                 // Vous pouvez ajouter d'autres métadonnées ici
-            ])
-            ->toMediaCollection('attestations');  // Save it to the 'attestations' collection
+            ])->toMediaCollection('attestations');  // Save it to the 'attestations' collection
+
 
             // 6. Envoyer l'email avec Beautymail
             $beautymail = app()->make(BeautyMail::class);

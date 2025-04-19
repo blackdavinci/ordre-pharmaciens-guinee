@@ -1,7 +1,5 @@
 <?php
 
-use App\Settings\GeneralSettings;
-
 return [
 
     // These CSS rules will be applied after the regular template CSS
@@ -20,14 +18,14 @@ return [
     ],
 
     'view' => [
-        'senderName'  => null,
+        'senderName'  => 'Office National des Pharmaciens de Guinée',
         'reminder'    => null,
         'unsubscribe' => null,
         'address'     => null,
 
         'logo'        => [
-            'path'   => '%PUBLIC%/vendor/beautymail/assets/images/sunny/logo.png',
-//            'path'   => app(GeneralSettings::class)->logo ?? '%PUBLIC%/vendor/beautymail/assets/images/sunny/logo.png', // Fallback logo
+//            'path'   => '%PUBLIC%/vendor/beautymail/assets/images/sunny/logo.png',
+            'path'   => public_path('storage/logo.png'), // Fallback logo
             'width'  => '',
             'height' => '',
         ],

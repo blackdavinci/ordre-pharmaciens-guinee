@@ -17,7 +17,7 @@ return new class extends Migration
             $table->enum('type', ['inscription', 'reinscription'])->default('inscription');
             $table->string('code')->nullable();
             $table->dateTime('transaction_date')->nullable();
-            $table->enum('status', ['new', 'pending','success','failed','canceled','error'])->default('new');
+            $table->enum('status', ['new', 'pending','success','failed','canceled','error'])->default('pending');
             $table->string('status_description')->nullable();
             $table->string('error_message')->nullable();
             $table->string('payment_method')->nullable(); // ex: orange money, playcard, etc.
@@ -26,7 +26,8 @@ return new class extends Migration
             $table->string('payment_reference')->nullable(); // référence de transaction
             $table->string('merchant_name')->nullable();
             $table->string('token')->nullable()->index();
-            $table->foreignId('inscription_id')->constrained('inscriptions')->onDelete('cascade'); // La clé étrangère fait référence à la table inscriptions
+            $table->foreignId('inscription_id')->nullable()->constrained('inscriptions')->onDelete('cascade');
+            $table->foreignId('reinscription_id')->nullable()->constrained('inscriptions')->onDelete('cascade');
             $table->timestamps();
         });
     }

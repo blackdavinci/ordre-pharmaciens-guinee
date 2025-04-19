@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\AttestationController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\PaymentController;
 use App\Livewire\PharmaciensList;
 use App\Models\Inscription;
@@ -9,49 +9,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PageController;
 use App\Livewire\InscriptionPharmacienForm;
 
-Route::get('/test', function()
-{
-    $beautymail = app()->make(Snowfire\Beautymail\Beautymail::class);
-    $beautymail->send('emails.minty', [], function($message)
-    {
-        $message
-            ->from('ousmaneciss1@gmail.com')
-            ->to('ousmaneciss1@gmail.com', 'John Smith')
-            ->subject('Welcome!');
-    });
+Route::get('/attestation', [DocumentController::class, 'generateAttestationPDF'])->name('generate.attestation');
 
-});
+Route::get('/receipt', [DocumentController::class, 'generateReceiptPDF'])->name('generate.receipt');
 
-Route::get('/attestation', function(){
-
-    $inscription = Inscription::findOrFail(4);
-
-    $data = [
-        'inscription' => $inscription,
-        'date' => now()->format('d/m/Y'),
-    ];
-
-//    return view('pharmaciens.attestations.pdf-attestation', compact('inscription'));
-//
-//    // Créer l'instance de PDF avec orientation paysage
-//    $pdf = PDF::loadView('pharmaciens.attestations.pdf-attestation', $data)
-//        ->setPaper('a4', 'landscape')
-//        ->setOptions([
-//            'isHtml5ParserEnabled' => true,
-//            'isRemoteEnabled' => true,
-//            'defaultFont' => 'sans-serif',
-//            'dpi' => 150,
-//            'debugCss' => false
-//        ]);
-
-    // Generate PDF using DOMPDF
-    $pdf = PDF::loadView('pharmaciens.attestations.pdf-attestation', $data)->setPaper('a4', 'landscape');
-// Télécharger le PDF
-//    return $pdf->download('attestation.pdf');
-    return $pdf->stream();
-});
-
-Route::get('/attestation-pdf', [AttestationController::class, 'generatePDF']);
+Route::get('/attestations/{uuid}/verify', [DocumentController::class, 'verify'])->name('attestation.verify');
 
 Route::get('/', [PageController::class, 'home'])->name('pharmaciens.home');
 
@@ -59,7 +21,9 @@ Route::get('/a-propos', [PageController::class, 'about'])->name('pharmaciens.abo
 
 Route::get('/liste-pharmaciens', [PageController::class, 'liste'])->name('pharmaciens.liste');
 
-Route::get('/pharmacien/inscription', InscriptionPharmacienForm::class)->name('pharmaciens.inscription');
+Route::get('/pharmacien/inscription/{token?}', InscriptionPharmacienForm::class)->name('pharmaciens.inscription');
+
+Route::post('/inscription/check-email', [PageController::class, 'checkEmail'])->name('inscription.check');
 
 Route::get('/inscription/{numero}/success', [PageController::class,'inscriptionSuccess'])->name('inscription.success');
 
