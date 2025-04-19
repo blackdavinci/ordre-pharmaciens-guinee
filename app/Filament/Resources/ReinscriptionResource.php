@@ -134,8 +134,7 @@ class ReinscriptionResource extends Resource
                                             ->columnSpan(12)
                                             ->schema([
                                                 TextEntry::make('inscription.email')
-                                                    ->label('E-mail')
-                                                    ->formatStateUsing(fn ($state) => ucfirst($state)),
+                                                    ->label('E-mail'),
                                                 TextEntry::make('inscription.telephone_mobile')
                                                     ->label('Téléphone mobile')
                                                     ->formatStateUsing(fn ($state) => ucfirst($state)),
@@ -532,5 +531,9 @@ class ReinscriptionResource extends Resource
             ->body("La réinscription a été approuvée et les emails ont été envoyés.")
             ->success()
             ->send();
+    }
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::where('statut','pending')->count();
     }
 }

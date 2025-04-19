@@ -23,7 +23,9 @@ class CreateUser extends CreateRecord
         // Generate a random password with 8 characters
         $password = $this->generateRandomPassword(8);
         $data['password'] = $password;
-        $data['status'] = 1;
+        $data['statut'] = 1;
+        $data['email_verified_at'] = now();
+
 
         // Store the plain password to send it in the email
         $this->plainPassword = $password;

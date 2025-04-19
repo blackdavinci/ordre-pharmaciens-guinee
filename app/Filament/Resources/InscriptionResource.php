@@ -37,6 +37,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;  // Import the DB facade
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Parfaitementweb\FilamentCountryField\Infolists\Components\CountryEntry;
 use Parfaitementweb\FilamentCountryField\Tables\Columns\CountryColumn;
@@ -65,6 +66,62 @@ class InscriptionResource extends Resource
     {
         return $infolist
             ->schema([
+                Section::make()
+                    ->schema([
+                        Grid::make(12)
+                            ->schema([
+                                Grid::make(3)
+                                    ->schema([
+                                        TextEntry::make('statut')
+                                            ->label('Inscription')
+                                            ->formatStateUsing(fn (string $state): string => ucfirst($state))
+                                            ->formatStateUsing(fn (string $state): string => match($state) {
+                                                'approved' => 'Approuvée',
+                                                'rejected' => 'Rejetée',
+                                                'pending' => 'En attente d\'approbation',
+                                                default => uc($state),
+                                            })
+                                            ->badge()
+                                            ->colors([
+                                                'warning' => 'pending',
+                                                'success' => 'approved',
+                                                'danger' => 'rejected',
+                                            ])
+                                            ->icons([
+                                                'heroicon-o-check-circle' => 'approved',
+                                                'heroicon-o-x-circle' => 'rejected',
+                                                'heroicon-o-clock' => 'pending',
+                                            ]),
+                                        TextEntry::make('valid_from')
+                                            ->label('Du')
+                                            ->badge()
+                                            ->color('success')
+                                            ->formatStateUsing(function ($state) {
+                                                if (!$state) return null;
+                                                // Création d'un objet Carbon à partir de la date
+                                                $date = \Carbon\Carbon::parse($state);
+                                                // Formatage au format dd/mm/YYYY
+                                                return strtoupper($date->locale('fr')->isoFormat('D MMMM YYYY'));
+                                            }),
+                                        TextEntry::make('valid_until')
+                                            ->label('Au')
+                                            ->badge()
+                                            ->color('success')
+                                            ->formatStateUsing(function ($state) {
+                                                if (!$state) return null;
+                                                // Création d'un objet Carbon à partir de la date
+                                                $date = \Carbon\Carbon::parse($state);
+                                                // Formatage au format dd/mm/YYYY
+                                                return strtoupper($date->locale('fr')->isoFormat('D MMMM YYYY'));
+                                            }),
+                                        TextEntry::make('motif_rejet')
+                                            ->label('Motif du rejet')
+                                            ->columnSpanFull()
+                                            ->formatStateUsing(fn (string $state): HtmlString => new HtmlString($state))
+                                            ->visible(fn ($record) => $record->statut == 'rejected'),
+                                    ])
+                            ]),
+                    ])->collapsible(),
                 Tabs::make('Tabs')
                     ->tabs([
                         Tabs\Tab::make('Identité personnelle')
@@ -142,8 +199,7 @@ class InscriptionResource extends Resource
                                             ->columnSpan(12)
                                             ->schema([
                                                 TextEntry::make('email')
-                                                    ->label('E-mail')
-                                                    ->formatStateUsing(fn ($state) => ucfirst($state)),
+                                                    ->label('E-mail'),
                                                 TextEntry::make('telephone_mobile')
                                                     ->label('Téléphone mobile')
                                                     ->formatStateUsing(fn ($state) => ucfirst($state)),
@@ -572,6 +628,11 @@ class InscriptionResource extends Resource
             ->body("L'inscription a été approuvée et les emails ont été envoyés.")
             ->success()
             ->send();
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::where('statut','pending')->count();
     }
 
 }

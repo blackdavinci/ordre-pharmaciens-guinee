@@ -28,20 +28,6 @@ class ViewInscription extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            // Inscription Status
-            Actions\Action::make('approved_inscription')
-                ->label('INSCRIPTION VALIDÉE')
-                ->color('success')
-                ->disabled()
-                ->icon('heroicon-o-check-circle')
-                ->visible(fn ($record) => $record->statut == 'approved'),
-            Actions\Action::make('rejected_inscription')
-                ->label('INSCRIPTION REJETÉE')
-                ->color('warning')
-                ->disabled()
-                ->icon('heroicon-o-x-circle')
-                ->visible(fn ($record) => $record->statut == 'rejected'),
-
             Actions\Action::make('updateOrdreNumero')
                 ->label("Mise à jour numéro de l'ordre")
                 ->icon('heroicon-o-arrow-path')
@@ -70,7 +56,7 @@ class ViewInscription extends ViewRecord
                     // Appel à la méthode approveInscription depuis une instance de la ressource
                     (new InscriptionResource)->approveInscription($record);
                 })
-                ->visible(fn ($record) => !in_array($record->statut, ['approved', 'rejected'])),
+                ->visible(fn ($record) => !in_array($record->statut, ['approved', 'rejected']) && auth()->user()->hasRole('president')),
             Actions\Action::make('rejected')
                 ->label('Rejeter')
                 ->color('warning')
@@ -81,7 +67,7 @@ class ViewInscription extends ViewRecord
                 ->modalIcon('heroicon-o-x-circle')
                 ->modalIconColor('danger')
                 ->form([
-                    \Filament\Forms\Components\Textarea::make('reason')
+                    \Filament\Forms\Components\RichEditor::make('reason')
                         ->label('Motif du rejet')
                         ->required(),
                 ])
@@ -97,7 +83,7 @@ class ViewInscription extends ViewRecord
                         ->danger()
                         ->send();
                 })
-                ->visible(fn ($record) => !in_array($record->statut, ['approved', 'rejected'])),
+                ->visible(fn ($record) => !in_array($record->statut, ['approved', 'rejected']) && auth()->user()->hasRole('president')),
             Actions\Action::make('delete')
                 ->label('Supprimer')
                 ->color('danger')
@@ -106,7 +92,8 @@ class ViewInscription extends ViewRecord
                 ->modalHeading('Suppression Inscription')
                 ->modalDescription('Voulez-vous vraiment supprimer cette inscription? Cette action est irréveresible.')
                 ->modalIcon('heroicon-o-trash')
-                ->modalIconColor('danger'),
+                ->modalIconColor('danger')
+                ->visible(fn ($record) => auth()->user()->hasRole('president')),
         ];
     }
 

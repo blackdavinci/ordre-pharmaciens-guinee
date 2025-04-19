@@ -36,7 +36,7 @@
             <div class="col">
                 <nav class="navbar navbar-expand-md anfra-nav">
                     <a class="navbar-brand" href="{{route('pharmaciens.home')}}">
-                        <img src="{{asset('storage/'.$settings->logo)}}" class="main-logo" alt="" width="25%">
+                        <img src="{{asset('storage/'.$settings->logo_alt)}}" class="main-logo" alt="" width="25%">
                         <img src="{{asset('storage/'.$settings->logo_mobile)}}" class="logo-2" alt="" width="25%">
                     </a>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,7 +68,7 @@
                         <br>
                         <div class="tips">
                             <div class="icon">
-                                <img src="assets/images/icon/2.png" class="img-fluid" alt="">
+                                <img src="assets/images/icon/docs.png" class="img-fluid" alt="">
                             </div>
                             <div class="content">
                                 <h4>Voici la liste des documents à numériser :</h4>
@@ -85,7 +85,7 @@
                         </div>
                         <div class="tips">
                             <div class="icon">
-                                <img src="assets/images/icon/2.png" class="img-fluid" alt="">
+                                <img src="assets/images/icon/add-task.png" class="img-fluid" alt="">
                             </div>
                             <div class="content">
                                 <h4>Documents supplémentaires</h4>

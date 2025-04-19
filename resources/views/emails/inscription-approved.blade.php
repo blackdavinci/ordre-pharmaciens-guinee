@@ -48,11 +48,11 @@
                 </tr>
                 <tr>
                     <td style="padding: 8px;"><strong>Date d'approbation :</strong></td>
-                    <td>{{ $reinscription->valid_from->format('d/m/Y') }}</td>
+                    <td>{{ $inscription->valid_from->format('d/m/Y') }}</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px;"><strong>Inscription valide jusqu'au :</strong></td>
-                    <td>{{ $reinscription->valid_until->format('d/m/Y') }}</td>
+                    <td>{{ $inscription->valid_until->format('d/m/Y') }}</td>
                 </tr>
             </table>
         </td>

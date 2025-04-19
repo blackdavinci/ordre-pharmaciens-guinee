@@ -396,10 +396,13 @@ class InscriptionPharmacienForm extends Component implements HasForms
             }else{
                 $inscription = Inscription::create(array_merge($data, [
                     'inscription_token' => $token,
-                    'numero_inscription' => $this->generateInscriptionNumber(),
                     'statut' => 'pending',
                     'inscription_draft_expiration_at' => now()->addHours(48),
                 ]));
+
+                $numero_inscription = $inscription->generateInscriptionNumber();
+
+                $inscription->update(['numero_inscription' => $numero_inscription]);
 
                 foreach ($rawData as $field => $files) {
                     if (is_array($files)) {

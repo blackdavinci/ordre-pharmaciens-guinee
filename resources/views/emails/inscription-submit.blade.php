@@ -31,8 +31,8 @@
         <td class="paragraph">
             <table style="width: 100%;">
                 <tr>
-                    <td style="width: 120px;"><strong>Numéro d'inscription :</strong></td>
-                    <td>{{ $inscription->code_registre }}</td>
+                    <td><strong>Numéro d'inscription :</strong></td>
+                    <td>{{ $inscription->numero_inscription }}</td>
                 </tr>
                 <tr>
                     <td><strong>Nom complet :</strong></td>

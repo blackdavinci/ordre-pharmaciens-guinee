@@ -11,7 +11,7 @@
     }
 }
 .covid-tips h1, .covid-tips h2, .covid-tips h3, .covid-tips h4, .covid-tips h5, .covid-tips h6, .covid-tips p{
-    color:#000;
+    color:#fff;
 }
 .covid-bg:before{
     background: none;
@@ -19,11 +19,11 @@
 }
 .covid-tips .tips .content h1, .covid-tips .tips .content h2, .covid-tips .tips .content h3,
 .covid-tips .tips .content h4, .covid-tips .tips .content h5, .covid-tips .tips .content h6 {
-    color:#000;
+    color:#fff;
 }
 
 .content .list p,.content .list{
-    color:#000;
+    color:#fff;
 }
 .covid-tips .tips:not(:last-child){
     margin-bottom: 0;
@@ -60,4 +60,7 @@ p{
 }
 .covid-test-wrap.thankyou-sec .button-reload{
     margin-top: 0px;
+}
+.img-fluid{
+    max-width: 70%;
 }

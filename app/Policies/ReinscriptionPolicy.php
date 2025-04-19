@@ -105,5 +105,4 @@ class ReinscriptionPolicy
     {
         return $user->can('reorder_reinscription');
     }
-
 }

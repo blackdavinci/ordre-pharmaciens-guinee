@@ -25,19 +25,6 @@ class ViewReinscription extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            // Inscription Status
-            Actions\Action::make('approved_reinscription')
-                ->label('INSCRIPTION VALIDÉE')
-                ->color('success')
-                ->disabled()
-                ->icon('heroicon-o-check-circle')
-                ->visible(fn ($record) => $record->statut == 'approved'),
-            Actions\Action::make('rejected_inscription')
-                ->label('RÉINSCRIPTION REJETÉE')
-                ->color('warning')
-                ->disabled()
-                ->icon('heroicon-o-x-circle')
-                ->visible(fn ($record) => $record->statut == 'rejected'),
 
             // Inscription Actions
             Actions\Action::make('approved')
@@ -53,7 +40,7 @@ class ViewReinscription extends ViewRecord
                     // Appel à la méthode approveInscription depuis une instance de la ressource
                     (new ReinscriptionResource)->approveReinscription($record);
                 })
-                ->visible(fn ($record) => !in_array($record->statut, ['approved', 'rejected'])),
+                ->visible(fn ($record) => !in_array($record->statut, ['approved', 'rejected']) && auth()->user()->hasRole('president')),
             Actions\Action::make('rejected')
                 ->label('Rejeter')
                 ->color('warning')
@@ -80,7 +67,7 @@ class ViewReinscription extends ViewRecord
                         ->danger()
                         ->send();
                 })
-                ->visible(fn ($record) => !in_array($record->statut, ['approved', 'rejected'])),
+                ->visible(fn ($record) => !in_array($record->statut, ['approved', 'rejected']) && auth()->user()->hasRole('president') ),
             Actions\Action::make('delete')
                 ->label('Supprimer')
                 ->color('danger')
@@ -89,7 +76,8 @@ class ViewReinscription extends ViewRecord
                 ->modalHeading('Suppression Réinscription')
                 ->modalDescription('Voulez-vous vraiment supprimer cette réinscription? Cette action est irréveresible.')
                 ->modalIcon('heroicon-o-trash')
-                ->modalIconColor('danger'),
+                ->modalIconColor('danger')
+                ->visible(fn ($record) => auth()->user()->hasRole('president')),
         ];
     }
 }
